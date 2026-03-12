@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>台股每日彙整</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+  <style>
+    :root {
+      --bg:        #0f1117;
+      --card:      #1a1d27;
+      --border:    #2a2d3a;
+      --text:      #e2e8f0;
+      --muted:     #94a3b8;
+      --accent:    #3b82f6;
+      --green:     #22c55e;
+      --red:       #ef4444;
+      --yellow:    #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1.2rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    header h1 { font-size: 1.3rem; font-weight: 700; }
+    header h1 span { color: var(--accent); }
+
+    .nav-btns { display: flex; gap: .6rem; align-items: center; }
+
+    .nav-btns button {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: .4rem .9rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: .85rem;
+      transition: background .15s;
+    }
+    .nav-btns button:hover { background: var(--border); }
+    .nav-btns button:disabled { opacity: .4; cursor: default; }
+
+    #date-display {
+      font-size: .9rem;
+      color: var(--muted);
+      min-width: 90px;
+      text-align: center;
+    }
+
+    main {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1.2rem;
+      display: grid;
+      gap: 1.4rem;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.4rem 1.6rem;
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: .6rem;
+    }
+
+    /* 大盤指數 */
+    .index-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: .8rem;
+    }
+    .index-item {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+    }
+    .index-item .label { font-size: .8rem; color: var(--muted); margin-bottom: .4rem; }
+    .index-item .value { font-size: 1.6rem; font-weight: 700; }
+    .index-item .change { font-size: .85rem; margin-top: .3rem; }
+    .up   { color: var(--green); }
+    .down { color: var(--red); }
+
+    /* 法人買賣超 */
+    .inst-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: .8rem;
+    }
+    .inst-item {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: .8rem 1rem;
+      text-align: center;
+    }
+    .inst-item .label { font-size: .8rem; color: var(--muted); margin-bottom: .3rem; }
+    .inst-item .value { font-size: 1.1rem; font-weight: 600; }
+
+    /* 個股技術面 */
+    .stock-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    .stock-table th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: 500;
+      padding: .5rem .6rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .stock-table td { padding: .55rem .6rem; border-bottom: 1px solid var(--border); }
+    .stock-table tr:last-child td { border-bottom: none; }
+    .rsi-badge {
+      display: inline-block;
+      padding: .15rem .5rem;
+      border-radius: 4px;
+      font-size: .8rem;
+      font-weight: 600;
+    }
+    .rsi-hot  { background: rgba(239,68,68,.2);  color: var(--red); }
+    .rsi-cold { background: rgba(59,130,246,.2); color: var(--accent); }
+    .rsi-mid  { background: rgba(148,163,184,.1); color: var(--muted); }
+
+    /* AI 報告 */
+    #report-content h2 { color: var(--text); font-size: .95rem; margin: 1rem 0 .5rem; border: none; padding: 0; }
+    #report-content h3 { color: var(--muted); font-size: .88rem; margin: .8rem 0 .4rem; }
+    #report-content p  { line-height: 1.7; font-size: .9rem; margin-bottom: .6rem; }
+    #report-content ul { padding-left: 1.2rem; }
+    #report-content li { line-height: 1.7; font-size: .9rem; margin-bottom: .3rem; }
+
+    /* 新聞列表 */
+    .news-list { list-style: none; }
+    .news-list li {
+      padding: .6rem 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: .8rem;
+      align-items: baseline;
+    }
+    .news-list li:last-child { border-bottom: none; }
+    .news-source {
+      font-size: .72rem;
+      color: var(--accent);
+      background: rgba(59,130,246,.1);
+      padding: .1rem .4rem;
+      border-radius: 3px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .news-list a {
+      color: var(--text);
+      text-decoration: none;
+      font-size: .88rem;
+      line-height: 1.5;
+    }
+    .news-list a:hover { color: var(--accent); }
+
+    #loading {
+      text-align: center;
+      color: var(--muted);
+      padding: 4rem 0;
+      font-size: 1.1rem;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: .78rem;
+      padding: 2rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📊 <span>台股</span>每日彙整</h1>
+  <div class="nav-btns">
+    <button id="btn-prev">← 前一天</button>
+    <span id="date-display">載入中</span>
+    <button id="btn-next" disabled>後一天 →</button>
+  </div>
+</header>
+
+<main id="app">
+  <div id="loading">⏳ 載入資料中...</div>
+</main>
+
+<footer id="footer"></footer>
+
+<script>
+  let dateList = [];
+  let currentIndex = 0;
+
+  async function loadIndex() {
+    const r = await fetch("index_list.json");
+    dateList = await r.json();
+    currentIndex = 0;
+    await loadDate(dateList[0]);
+    updateNavButtons();
+  }
+
+  async function loadDate(date) {
+    document.getElementById("date-display").textContent = date;
+    const app = document.getElementById("app");
+    app.innerHTML = '<div id="loading">⏳ 載入資料中...</div>';
+
+    let data;
+    try {
+      const r = await fetch(date === dateList[0] ? "latest.json" : `../data/${date}.json`);
+      data = await r.json();
+    } catch (e) {
+      app.innerHTML = `<div id="loading" style="color:#ef4444">❌ 無法載入 ${date} 的資料</div>`;
+      return;
+    }
+
+    app.innerHTML = renderAll(data);
+  }
+
+  function formatNet(v) {
+    if (v === undefined) return "—";
+    const s = v >= 0 ? `+${v.toLocaleString()}` : v.toLocaleString();
+    return `<span class="${v >= 0 ? 'up' : 'down'}">${s}</span>`;
+  }
+
+  function rsiClass(v) {
+    if (v >= 70) return "rsi-hot";
+    if (v <= 30) return "rsi-cold";
+    return "rsi-mid";
+  }
+
+  function renderAll(data) {
+    const { market = {}, news = [], report = "" } = data;
+    const { index = {}, institutional = {}, stocks = [] } = market;
+
+    // 大盤
+    let indexHtml = "";
+    if (index.TAIEX) {
+      const up = index.TAIEX.change && !index.TAIEX.change.startsWith("-");
+      indexHtml += `
+        <div class="index-item">
+          <div class="label">加權指數</div>
+          <div class="value ${up ? 'up' : 'down'}">${index.TAIEX.close?.toLocaleString() ?? "—"}</div>
+          <div class="change ${up ? 'up' : 'down'}">${index.TAIEX.change ?? ""}</div>
+        </div>`;
+    }
+    if (index.OTC) {
+      indexHtml += `
+        <div class="index-item">
+          <div class="label">櫃買指數</div>
+          <div class="value">${index.OTC.close ?? "—"}</div>
+        </div>`;
+    }
+
+    // 法人
+    const inst = institutional;
+    const instHtml = inst.total_net !== undefined ? `
+      <div class="inst-item"><div class="label">外資</div><div class="value">${formatNet(inst.foreign_net)}</div></div>
+      <div class="inst-item"><div class="label">投信</div><div class="value">${formatNet(inst.trust_net)}</div></div>
+      <div class="inst-item"><div class="label">自營商</div><div class="value">${formatNet(inst.dealer_net)}</div></div>
+      <div class="inst-item"><div class="label">合計</div><div class="value">${formatNet(inst.total_net)}</div></div>
+    ` : "<span style='color:var(--muted)'>今日無法人資料</span>";
+
+    // 個股
+    const stockRows = stocks.filter(s => !s.error).map(s => `
+      <tr>
+        <td><strong>${s.stock_id}</strong></td>
+        <td>${s.close}</td>
+        <td><span class="rsi-badge ${rsiClass(s.RSI14)}">${s.RSI14}</span></td>
+        <td>${s.SMA7} / ${s.SMA20}</td>
+        <td>${s.high_30d} / ${s.low_30d}</td>
+      </tr>`).join("");
+
+    // 新聞
+    const newsHtml = news.slice(0, 20).map(n => `
+      <li>
+        <span class="news-source">${n.source}</span>
+        <a href="${n.link}" target="_blank" rel="noopener">${n.title}</a>
+      </li>`).join("");
+
+    return `
+      <div class="card">
+        <h2>📈 大盤指數</h2>
+        <div class="index-grid">${indexHtml || '<span style="color:var(--muted)">無資料</span>'}</div>
+      </div>
+
+      <div class="card">
+        <h2>🏦 三大法人買賣超（張）</h2>
+        <div class="inst-grid">${instHtml}</div>
+      </div>
+
+      <div class="card">
+        <h2>🔍 個股技術面快照</h2>
+        <table class="stock-table">
+          <thead><tr>
+            <th>股票</th><th>收盤</th><th>RSI14</th>
+            <th>SMA7 / SMA20</th><th>30日高 / 低</th>
+          </tr></thead>
+          <tbody>${stockRows || '<tr><td colspan="5" style="color:var(--muted)">無資料</td></tr>'}</tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>🤖 AI 每日彙整報告</h2>
+        <div id="report-content">${marked.parse(report || "（無報告）")}</div>
+      </div>
+
+      <div class="card">
+        <h2>📰 今日財經新聞</h2>
+        <ul class="news-list">${newsHtml || '<li style="color:var(--muted)">無新聞資料</li>'}</ul>
+      </div>
+    `;
+  }
+
+  document.getElementById("btn-prev").addEventListener("click", () => {
+    if (currentIndex < dateList.length - 1) {
+      currentIndex++;
+      loadDate(dateList[currentIndex]);
+      updateNavButtons();
+    }
+  });
+
+  document.getElementById("btn-next").addEventListener("click", () => {
+    if (currentIndex > 0) {
+      currentIndex--;
+      loadDate(dateList[currentIndex]);
+      updateNavButtons();
+    }
+  });
+
+  function updateNavButtons() {
+    document.getElementById("btn-prev").disabled = currentIndex >= dateList.length - 1;
+    document.getElementById("btn-next").disabled = currentIndex <= 0;
+  }
+
+  loadIndex().then(() => {
+    document.getElementById("footer").textContent =
+      `資料每個交易日自動更新 ・ Taiwan Stock Daily Digest`;
+  });
+</script>
+
+</body>
+</html>
