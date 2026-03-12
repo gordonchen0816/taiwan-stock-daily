@@ -1,7 +1,7 @@
 import os
-from openai import OpenAI
+import openai
 
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 
 def _fmt_institutional(inst):
@@ -69,7 +69,7 @@ def generate_report(news, market):
 ## ⚠️ 今日需注意
 """
 
-    response = client.chat.completions.create(
+    response = openai.ChatCompletion.create(
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=1200,
