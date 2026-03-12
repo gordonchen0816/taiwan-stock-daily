@@ -1,5 +1,5 @@
 feedparser==6.0.11
 requests==2.31.0
 pandas==2.2.0
-openai==1.3.9
+openai==０．２８．０
 twstock==1.4.0
