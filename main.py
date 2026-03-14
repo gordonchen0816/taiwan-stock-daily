@@ -1,121 +1,127 @@
 import os
+import requests
+from bs4 import BeautifulSoup
 import yfinance as yf
 from openai import OpenAI
-import requests
-import random
-import traceback
-from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
 import markdown
+from datetime import datetime
 
-# 1. 配置 OpenAI Client
+# 1. 初始化 OpenAI 客戶端 (會自動讀取 GitHub Secrets 的環境變數)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def get_news_pool(limit=45):
-    url = f"https://news.google.com/rss/search?q=股市+經濟+台灣+台股&hl=zh-TW&gl=TW&ceid=TW:zh-Hant&t={random.random()}"
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    pool = []
-    try:
-        response = requests.get(url, headers=headers, timeout=15)
-        soup = BeautifulSoup(response.content, features="xml")
-        items = soup.find_all('item', limit=limit)
-        for item in items:
-            pool.append(item.title.text)
-        return pool
-    except:
-        return ["無法取得即時新聞池"]
-
 def get_stock_data():
+    """獲取即時股市數據"""
     tks = {"加權指數": "^TWII", "台積電": "2330.TW", "鴻海": "2317.TW"}
-    res = ""
-    for name, code in tks.items():
-        try:
-            d = yf.download(code, period="5d", interval="1d", progress=False)
-            if not d.empty:
-                curr = round(float(d['Close'].iloc[-1].item()), 2)
-                prev = round(float(d['Close'].iloc[-2].item()), 2)
-                diff = round(curr - prev, 2)
-                pct = round((diff / prev) * 100, 2)
-                res += f"{name}: {curr} (漲跌: {diff}, 幅度: {pct}%)\n"
-        except:
-            res += f"{name}: 獲取失敗\n"
-    return res
+    data_summary = ""
+    for name, symbol in tks.items():
+        ticker = yf.Ticker(symbol)
+        hist = ticker.history(period="2d")
+        if len(hist) >= 2:
+            price = hist['Close'].iloc[-1]
+            change = price - hist['Close'].iloc[-2]
+            pct = (change / hist['Close'].iloc[-2]) * 100
+            data_summary += f"{name}: {price:.2f} (漲跌: {change:.2f}, 幅度: {pct:.2f}%)\n"
+    return data_summary
 
-try:
-    print("--- 啟動 AI 財經主編 (HTML 網頁模式) ---")
-    tw_now = datetime.utcnow() + timedelta(hours=8)
-    time_str = tw_now.strftime('%Y-%m-%d %H:%M:%S')
-    
-    news_pool = get_news_pool(50)
-    stocks = get_stock_data()
-    
+def get_news(query):
+    """抓取 Google News RSS 並強制篩選 24 小時內新聞"""
+    # 關鍵字後方加入 when:1d 確保時效性
+    url = f"https://news.google.com/rss/search?q={query}+when:1d&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
+    res = requests.get(url)
+    soup = BeautifulSoup(res.content, "xml")
+    items = soup.find_all("item")[:15]
+    news_list = []
+    for item in items:
+        news_list.append(f"{item.title.text} - {item.source.text}")
+    return "\n".join(news_list)
+
+def analyze_news(stock_info, news_pool):
+    """發送給 AI 進行過濾與深度分析"""
     prompt = f"""
-    任務：專業財經主編分類比對。
-    新聞池：{news_pool}
-    股市數據：{stocks}
-    請使用 Markdown 語法輸出：
-    ### 📰 今日各報頭條摘要
-    #### 🏦 財經綜合焦點 (5則)
-    #### 📖 經濟日報精選 (5則)
-    #### 🌐 Google RSS 熱門 (5則)
-    ### 📌 三大媒體焦點交集
-    ### 📈 個股現況與大盤分析
+    你是台灣專業財經報紙主編。請根據以下原始資訊撰寫一份簡報。
+    
+    【當前真實數據】:
+    {stock_info}
+    
+    【待處理新聞池】:
+    {news_pool}
+    
+    【重要指令 - 請嚴格遵守】:
+    1. 檢查時效性：若新聞標題包含過期月份(如10月、12月)或過期節日(如國慶、春節)，請直接剔除。
+    2. 檢查邏輯：若新聞提到的指數(如2萬點、3萬點)與當前真實數據差距超過 3000 點，視為舊聞，請直接剔除。
+    3. 分類摘要：請將精選出的「真正今日新聞」分為「財經綜合」、「個股要聞」、「國際影響」。
+    4. 焦點交集：找出 3 條今天各大媒體共同關注的「焦點交集」。
+    5. 專業口氣：以客觀、精煉的財經主編語氣撰寫。
     """
     
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "你是一位專業的台灣財經分析專家。"},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.3
+        messages=[{"role": "user", "content": prompt}]
     )
-    
-    md_text = response.choices[0].message.content
-    html_body = markdown.markdown(md_text, extensions=['tables', 'fenced_code'])
+    return response.choices[0].message.content
 
-    full_html = f"""
-    <!DOCTYPE html>
-    <html lang="zh-TW">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>台灣股市 AI 精選情報</title>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
-        <style>
-            .markdown-body {{ box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }}
-            @media (max-width: 767px) {{ .markdown-body {{ padding: 15px; }} }}
-            .info-banner {{ background-color: #f0f7ff; border: 1px solid #cce3ff; padding: 20px; border-radius: 10px; margin-bottom: 30px; font-family: sans-serif; }}
-            #live-clock {{ color: #0056b3; font-weight: bold; font-size: 1.1em; }}
-        </style>
-    </head>
-    <body class="markdown-body">
+# --- 執行流程 ---
+print("正在獲取數據...")
+stock_summary = get_stock_data()
+# 分別抓取不同維度的關鍵字，增加廣度
+news_pool = get_news("台股+大盤") + "\n" + get_news("台積電+半導體") + "\n" + get_news("台灣+經濟成長")
+
+print("AI 正在分析與過濾舊聞...")
+ai_analysis = analyze_news(stock_summary, news_pool)
+
+# --- 生成網頁內容 ---
+now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+html_content = markdown.markdown(ai_analysis)
+
+full_html = f"""
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台股 AI 精選情報</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body {{ box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }}
+        .header {{ border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px; }}
+        .footer {{ margin-top: 50px; font-size: 0.8em; color: #666; border-top: 1px solid #eee; padding-top: 20px; }}
+        .live-time {{ color: #d73a49; font-weight: bold; }}
+    </style>
+</head>
+<body class="markdown-body">
+    <div class="header">
         <h1>📊 台灣股市 AI 精選情報</h1>
-        <div class="info-banner">
-            <p>📋 <strong>最後更新 (伺服器抓取)：</strong> {time_str}</p>
-            <p>🕒 <strong>您目前的瀏覽時間：</strong> <span id="live-clock">讀取中...</span></p>
-        </div>
-        {html_body}
-        <hr>
-        <p style="text-align: center; color: #666;">數據來源：Google News, Yahoo Finance</p>
-        <script>
-            function startClock() {{
-                setInterval(() => {{
-                    const now = new Date();
-                    document.getElementById('live-clock').innerText = now.toLocaleString('zh-TW', {{
-                        timeZone: 'Asia/Taipei', hour12: false
-                    }});
-                }}, 1000);
-            }}
-            startClock();
-        </script>
-    </body>
-    </html>
-    """
+        <p>📋 最後更新 (伺服器抓取)：<strong>{now_str}</strong></p>
+        <p>🕒 您目前的瀏覽時間：<span id="clock" class="live-time"></span></p>
+    </div>
 
-    with open("index.html", "w", encoding="utf-8") as f:
-        f.write(full_html)
-    print(f"--- 網頁更新完成 ---")
+    <div class="content">
+        {html_content}
+    </div>
 
-except Exception as e:
-    print(f"失敗: {traceback.format_exc()}")
+    <hr>
+    <h3>📈 即時市場數據參考</h3>
+    <pre><code>{stock_summary}</code></pre>
+
+    <div class="footer">
+        <p>數據來源：Google News RSS, Yahoo Finance API<br>
+        本頁面由 AI 自動彙整生成，僅供參考，投資請謹慎評估風險。</p>
+    </div>
+
+    <script>
+        function updateClock() {{
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleString();
+        }}
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+</body>
+</html>
+"""
+
+# 寫入檔案
+with open("index.html", "w", encoding="utf-8") as f:
+    f.write(full_html)
+
+print("網頁更新成功！")
