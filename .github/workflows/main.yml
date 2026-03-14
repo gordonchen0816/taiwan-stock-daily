@@ -2,11 +2,11 @@ name: Daily Stock Report
 
 on:
   schedule:
-    - cron: '0 8 * * *' # 每天下午 4 點 (UTC 8)
+    - cron: '0 8 * * *' # 每天下午 4 點 (UTC+8)
   workflow_dispatch: # 允許手動執行
 
 permissions:
-  contents: write # 關鍵：允許機器人寫入檔案
+  contents: write
 
 jobs:
   build:
@@ -30,13 +30,11 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python main.py
 
-      - - name: Commit and Push
+      - name: Commit and Push
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add index.md
+          # 這裡強制加上時間戳記 commit，確保 Git 一定會偵測到變動
           git commit -m "Auto update: $(date +'%Y-%m-%d %H:%M:%S')" || exit 0
-          git push
-          # 加上日期確保每次 commit 內容都不同，強制更新
-          git commit -m "Auto update: $(date +'%Y-%m-%d %H:%M')" || echo "No changes to commit"
           git push
