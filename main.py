@@ -12,7 +12,7 @@ import markdown
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def get_news_pool(limit=45):
-    # 加上 when:1d 確保從 Google RSS 抓取的都是 24 小時內的新聞
+    # 加入 when:1d 確保只抓 24 小時內新聞，避免資訊穿越
     url = f"https://news.google.com/rss/search?q=股市+經濟+台灣+台股+when:1d&hl=zh-TW&gl=TW&ceid=TW:zh-Hant&t={random.random()}"
     headers = {'User-Agent': 'Mozilla/5.0'}
     pool = []
@@ -37,51 +37,51 @@ def get_stock_data():
                 prev = round(float(d['Close'].iloc[-2].item()), 2)
                 diff = round(curr - prev, 2)
                 pct = round((diff / prev) * 100, 2)
-                res += f"{name}: {curr} ({diff}, {pct}%) "
+                res += f"{name}: {curr} (漲跌: {diff}, 幅度: {pct}%) "
         except:
             res += f"{name}: 獲取失敗 "
     return res
 
 try:
-    print("--- 啟動 AI 財經主編 (繁體中文強化版) ---")
+    print("--- 啟動 AI 財經主編 (HTML 網頁模式) ---")
     tw_now = datetime.utcnow() + timedelta(hours=8)
     time_str = tw_now.strftime('%Y-%m-%d %H:%M:%S')
     
     news_pool = get_news_pool(50)
     stocks = get_stock_data()
     
-    # 強化 Prompt：嚴格規範格式與繁體中文
+    # 強制繁體中文與嚴格排版格式
     prompt = f"""
     任務：專業財經主編分類比對。
+    要求：必須全部使用「繁體中文」輸出。
     新聞池：{news_pool}
     股市數據：{stocks}
     
-    【輸出規範 - 嚴格執行】：
-    1. 語言：必須使用「繁體中文」。
-    2. 格式：請嚴格依照下方格式輸出：
+    請嚴格使用 Markdown 語法輸出以下格式：
     
     ## 📰 今日各報頭條摘要
+    
     ### 🏦 財經綜合焦點 (5則)
-    (條列5則新聞，標題 - 來源)
+    (條列5則，標題 - 來源)
     
     ### 📖 經濟日報精選 (5則)
-    (條列5則新聞，標題 - 來源)
+    (條列5則，標題 - 來源)
     
     ### 🌐 Google RSS 熱門 (5則)
-    (條列5則新聞，標題 - 來源)
+    (條列5則，標題 - 來源)
     
     ## 📌 三大媒體焦點交集 (真正重複報導的事件)
-    [焦點 1]：(描述)
-    [焦點 2]：(描述)
-    [焦點 3]：(描述)
+    [焦點 1]：描述
+    [焦點 2]：描述
+    [焦點 3]：描述
     
     ## 📈 個股現況與大盤分析
     數據：{stocks}
-    評論：(針對今日新聞與數據給予一段 100 字內的專業分析評論)
-
-    【過濾指令】：
-    - 剔除過期月份(10月、12月)或過期標題(如國慶、封關)。
-    - 若指數點數與當前數據差距超過3000點，視為舊聞剔除。
+    評論：(針對數據與今日新聞進行一段專業分析，100字以內)
+    
+    【過濾守則】：
+    1. 剔除過期月份(如10月、12月)或節日(如國慶、封關)。
+    2. 若新聞提到的點數與當前數據 {stocks} 差距過大(超過3000點)，視為舊聞剔除。
     """
     
     response = client.chat.completions.create(
@@ -107,8 +107,9 @@ try:
         <style>
             .markdown-body {{ box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }}
             @media (max-width: 767px) {{ .markdown-body {{ padding: 15px; }} }}
-            .info-banner {{ background-color: #f8f9fa; border-left: 5px solid #007bff; padding: 15px; margin-bottom: 30px; }}
-            #live-clock {{ color: #d73a49; font-weight: bold; }}
+            .info-banner {{ background-color: #f0f7ff; border: 1px solid #cce3ff; padding: 20px; border-radius: 10px; margin-bottom: 30px; font-family: sans-serif; }}
+            #live-clock {{ color: #0056b3; font-weight: bold; font-size: 1.1em; }}
+            h1 {{ border-bottom: none !important; }}
         </style>
     </head>
     <body class="markdown-body">
