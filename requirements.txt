@@ -1,5 +1,6 @@
-feedparser==6.0.11
-requests==2.31.0
-pandas==2.2.0
-openai==０．２８．０
-twstock==1.4.0
+yfinance
+openai
+requests
+beautifulsoup4
+lxml
+markdown
