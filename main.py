@@ -7,91 +7,115 @@ import traceback
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 
-# 配置 OpenAI Client (適用於 openai>=1.0.0 版本)
+# 配置 OpenAI Client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def get_real_news_titles():
-    # 使用 Google News RSS 抓取，確保涵蓋三大報及 Yahoo 的財經標題
-    url = f"https://news.google.com/rss/search?q=股市+經濟+台灣&hl=zh-TW&gl=TW&ceid=TW:zh-Hant&t={random.random()}"
-    headers = {'User-Agent': 'Mozilla/5.0'}
+def get_news_by_source(url, limit=5):
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+    titles = []
     try:
         response = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(response.content, features="xml")
-        items = soup.find_all('item', limit=30) # 抓取 30 則作為交叉比對樣本
-        titles = [item.title.text for item in items]
-        return "\n".join(titles) if titles else "目前無新聞標題"
-    except Exception as e:
-        return f"新聞抓取失敗: {e}"
+        response.encoding = 'utf-8'
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # 根據常見財經媒體結構抓取標題 (這部分採通用策略，若媒體改版需微調)
+        if "ctee" in url: # 工商時報
+            items = soup.find_all(['h3', 'h4'], limit=limit+5)
+        elif "money.udn" in url: # 經濟日報
+            items = soup.find_all(['h3', 'h4', 'a'], limit=limit+10)
+        else: # Google RSS
+            soup = BeautifulSoup(response.content, features="xml")
+            items = soup.find_all('item', limit=limit)
+            return [item.title.text for item in items]
+
+        for item in items:
+            t = item.get_text().strip()
+            if len(t) > 10 and t not in titles:
+                titles.append(t)
+            if len(titles) >= limit: break
+        return titles
+    except:
+        return ["無法取得該媒體頭條"]
 
 def get_stock_data():
-    # 抓取大盤及重點個股數據
     tks = {"加權指數": "^TWII", "台積電": "2330.TW", "鴻海": "2317.TW"}
     res = ""
     for name, code in tks.items():
         try:
             d = yf.download(code, period="5d", interval="1d", progress=False)
             if not d.empty:
-                # 使用 .item() 解決 float 警告
                 curr = round(float(d['Close'].iloc[-1].item()), 2)
                 prev = round(float(d['Close'].iloc[-2].item()), 2)
                 diff = round(curr - prev, 2)
                 pct = round((diff / prev) * 100, 2)
-                res += f"{name}: {curr} (漲跌: {diff}, 幅度: {pct}%)\n"
-        except Exception as e:
-            res += f"{name}: 獲取失敗({e})\n"
+                res += f"{name}: {curr} ({diff}, {pct}%)\n"
+        except:
+            res += f"{name}: 數據獲取失敗\n"
     return res
 
 try:
-    print("--- 啟動 AI 財經主編模式 ---")
-    # 設定台北時間 (UTC+8)
+    print("--- 啟動 AI 財經主編 (多源比對模式) ---")
     tw_time = datetime.utcnow() + timedelta(hours=8)
     time_str = tw_time.strftime('%Y-%m-%d %H:%M:%S')
     
-    # 執行數據抓取
-    raw_news = get_real_news_titles()
+    # 1. 分別抓取各家新聞
+    ctee_news = get_news_by_source("https://www.ctee.com.tw/livenews/aj") # 工商
+    money_news = get_news_by_source("https://money.udn.com/money/index") # 經濟
+    google_news = get_news_by_source("https://news.google.com/rss/search?q=股市+經濟+台灣&hl=zh-TW&gl=TW&ceid=TW:zh-Hant") # Google
+    
     stocks = get_stock_data()
     
-    # 執行嚴格交叉比對指令
+    # 2. 構建 AI 指令
     prompt = f"""
-    任務：你是專業財經主編，正在進行『三大財經媒體（工商時報、經濟日報、Yahoo財經）』的頭條交叉比對。
-    
-    【原始新聞標題集】：
-    {raw_news}
-    
+    任務：你是專業財經主編。請根據以下新聞來源，整理出今日頭條並進行交叉比對。
+
+    【工商時報頭條】：
+    {ctee_news}
+
+    【經濟日報頭條】：
+    {money_news}
+
+    【Google RSS 綜合頭條】：
+    {google_news}
+
     【最新股市數據】：
     {stocks}
 
-    指令：
-    1. 交叉比對：請從標題集中，找出被不同媒體重複報導、或提及 2 次以上的『核心焦點新聞』。
-    2. 排除雜訊：若該新聞僅由單一媒體報導且非重大政經事件，請忽略。不要羅列所有新聞，只要真正的交集。
-    3. 嚴格格式輸出：
-       ### 📌 三大媒體焦點交集
-       - [事件名稱]：說明為何它是今日各家媒體的共識焦點。
-       
-       ### 📈 個股現況與大盤分析
-       - 針對數據 {stocks} 進行分析，給予專業評論與今日操作建議。
+    請嚴格依照以下格式輸出：
+    
+    ### 📰 今日各報頭條摘要
+    #### 🏦 工商時報 (5則)
+    (請列出 5 則)
+    #### 📖 經濟日報 (5則)
+    (請列出 5 則)
+    #### 🌐 Google RSS (5則)
+    (請列出 5 則)
+
+    ### 📌 三大媒體焦點交集 (真正重複報導的事件)
+    (請從以上 15 則中比對，找出最重要的 3 個共同焦點，並說明原因。)
+
+    ### 📈 個股現況與大盤分析
+    (針對數據 {stocks} 給予專業評論與建議。)
     """
     
-    # 呼叫 OpenAI API
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "你是一位嚴謹的台灣股市分析專家，擅長過濾雜訊，只找出真正的市場共識。"},
+            {"role": "system", "content": "你是一位嚴謹的台灣財經分析專家，擅長彙整多方資訊。"},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.2 # 降低隨機性
+        temperature=0.3
     )
     content = response.choices[0].message.content
 
-    # 強制覆蓋寫入 index.md
+    # 3. 寫入 index.md
     with open("index.md", "w", encoding="utf-8") as f:
-        f.write(f"# 📊 台灣股市 AI 精選情報\n")
-        f.write(f"> **最後更新時間：{time_str}** (台北時間)\n\n")
+        f.write(f"# 📊 台灣股市 AI 精選情報 ({time_str})\n\n")
         f.write(content)
-        f.write(f"\n\n---\n*本報告由 AI 自動生成。驗證序號: {random.randint(1000, 9999)}*")
+        f.write(f"\n\n---\n*更新時間：{time_str} | 數據來源：工商、經濟、Yahoo、Google*")
     
-    print(f"--- 執行成功！已生成 index.md，時間：{time_str} ---")
+    print(f"--- 報告更新成功！時間：{time_str} ---")
 
 except Exception as e:
-    print("--- 執行失敗 ---")
+    print("--- 執行出錯 ---")
     print(traceback.format_exc())
