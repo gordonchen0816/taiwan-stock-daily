@@ -2,8 +2,10 @@ name: Daily Stock Report
 
 on:
   schedule:
-    - cron: '0 0 * * *' # 台灣時間每天早上 8 點執行
-  workflow_dispatch:
+    # 這是 UTC 時間，換算台灣時間 (UTC+8) 為：
+    # 18:00 (台 02:00), 00:00 (台 08:00), 06:00 (台 14:00), 12:00 (台 20:00)
+    - cron: '0 0,6,12,18 * * *'
+  workflow_dispatch: # 依然保留手動按鈕，隨時想看隨時按
 
 permissions:
   contents: write
@@ -36,5 +38,5 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git commit -m "Auto update HTML: $(date +'%Y-%m-%d %H:%M:%S')" || exit 0
+          git commit -m "Scheduled update HTML: $(date +'%Y-%m-%d %H:%M:%S')" || exit 0
           git push
