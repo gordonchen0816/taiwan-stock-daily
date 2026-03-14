@@ -1,82 +1,75 @@
 
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>台股 AI 精選情報</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
-    <style>
-        body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
-        .header { border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px; }
-        .footer { margin-top: 50px; font-size: 0.8em; color: #666; border-top: 1px solid #eee; padding-top: 20px; }
-        .live-time { color: #d73a49; font-weight: bold; }
-    </style>
-</head>
-<body class="markdown-body">
-    <div class="header">
+    <!DOCTYPE html>
+    <html lang="zh-TW">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>台灣股市 AI 精選情報</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+        <style>
+            .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+            @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+            .info-banner { background-color: #f0f7ff; border: 1px solid #cce3ff; padding: 20px; border-radius: 10px; margin-bottom: 30px; font-family: sans-serif; }
+            #live-clock { color: #0056b3; font-weight: bold; font-size: 1.1em; }
+        </style>
+    </head>
+    <body class="markdown-body">
         <h1>📊 台灣股市 AI 精選情報</h1>
-        <p>📋 最後更新 (伺服器抓取)：<strong>2026-03-14 22:39:39</strong></p>
-        <p>🕒 您目前的瀏覽時間：<span id="clock" class="live-time"></span></p>
-    </div>
-
-    <div class="content">
-        <p>【簡報】</p>
-<p>【當前真實數據】:
-加權指數: 33400.32 (漲跌: -181.54, 幅度: -0.54%)
-台積電: 1865.00 (漲跌: -20.00, 幅度: -1.06%)
-鴻海: 214.50 (漲跌: 0.00, 幅度: 0.00%)</p>
-<p>【重要指令 - 請嚴格遵守】:
-1. 檢查時效性：已剔除過期新聞標題。
-2. 檢查邏輯：已剔除舊聞。
-3. 分類摘要：財經綜合、個股要聞、國際影響。
-4. 焦點交集：待議。</p>
-<p>【財經綜合】:
-- 台股ETF 靠年化報酬撐盤
-- 元大高股息 表現可期
-- 阿瘦首度測試K线支撑！阿瘦差留下的“阴线”隐忧不容忽视
-- 資金共鳴，台股連續放巨量，所以也沒出現大幅震荡
-- 美国已于数周前恢复针对印度、欧盟、澳洲等国的63亿欧元的对美进口关税
-- 台股早盘仍转涨，预计今日反弹持续
-- 美股受到全球疫情忧虑的拖累，恐慌指数激增</p>
-<p>【個股要聞】:
-- 台積電漲跌: -20.00, 幅度: -1.06%
-- 台積電收漲90元 创历史新高
-- 台積電AI晶片需求暢旺
-- 鴻海漲跌: 0.00, 幅度: 0.00%
-- 鴻海现阶段处于盘整阶段
-- 鴻海与台積电都发挥稳定作用</p>
-<p>【國際影響】:
-- 川普称战争基本已结束 台股开盘上涨581点
-- 美伊战火＋就业崩盘！台股暴跌1489点
-- 台美日签署MOU，半导体战略中心加强
-- 中东局势影响能源供应，台湾列入美301调查</p>
-<p>【焦点交集】:
-- 台積電与鴻海表现稳定
-- 美中经贸关系对全球股市造成波动
-- 时事政治因素影响台股表现</p>
-<p>以上为今日台湾财经市场的关键信息，持续关注市场动向，及时调整投资策略。感谢各位阅读。</p>
-    </div>
-
-    <hr>
-    <h3>📈 即時市場數據參考</h3>
-    <pre><code>加權指數: 33400.32 (漲跌: -181.54, 幅度: -0.54%)
-台積電: 1865.00 (漲跌: -20.00, 幅度: -1.06%)
-鴻海: 214.50 (漲跌: 0.00, 幅度: 0.00%)
-</code></pre>
-
-    <div class="footer">
-        <p>數據來源：Google News RSS, Yahoo Finance API<br>
-        本頁面由 AI 自動彙整生成，僅供參考，投資請謹慎評估風險。</p>
-    </div>
-
-    <script>
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('clock').innerText = now.toLocaleString();
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
-    </script>
-</body>
-</html>
+        <div class="info-banner">
+            <p>📋 <strong>最後更新 (伺服器抓取)：</strong> 2026-03-15 06:49:25</p>
+            <p>🕒 <strong>您目前的瀏覽時間：</strong> <span id="live-clock">讀取中...</span></p>
+        </div>
+        <h3>📰 今日各報頭條摘要</h3>
+<h4>🏦 財經綜合焦點</h4>
+<ol>
+<li>非紅供應鏈起飛！台灣無人機出口狂增35倍，《經濟學人》點名2台廠占盡先機 - Yahoo股市</li>
+<li>股市與房市牽動？預測2026年連動與分歧關係 - 財經 - 中時新聞網</li>
+<li>台灣半導體供應鏈拉警報？外媒指「關鍵氣體」將被迅速消耗，經濟部急回應 - Yahoo股市</li>
+<li>美伊戰火震盪股市！法人喊AI還會更強，台股長線看多 - MSN</li>
+<li>全球購買力排行出爐！中國最強、美國次之，台灣2兆美元排第21名 - Yahoo股市</li>
+</ol>
+<h4>📖 經濟日報精選</h4>
+<ol>
+<li>郭哲榮：假的！美伊戰爭不會停，將崩6000點！</li>
+<li>台股擂台／挑戰者「股市擺渡人」陳玠儒，本周押偉詮電、創見</li>
+<li>「外資大逃殺」壓低台股，投信：對股市影響多為短期</li>
+<li>台美簽貿易協議，國泰金調查：48%肯定對我國經濟、股市有正面影響，13%預期衝擊經濟</li>
+<li>AI時代企業生死戰！崴浤科技月收3000萬揭轉型密碼 - Yahoo股市</li>
+</ol>
+<h4>🌐 Google RSS 熱門</h4>
+<ol>
+<li>台股科技、市值型夯 - 聯合新聞網</li>
+<li>中小型商品表現突出 - 聯合新聞網</li>
+<li>台股主動 ETF 相對抗震 - 聯合新聞網</li>
+<li>轉型題材發酵！誠美材(4960)股價亮燈漲停！-CMoney官方 - CMoney投資網誌</li>
+<li>投資網誌 - 閱讀是最好的投資 - cmoney.tw</li>
+</ol>
+<h3>📌 三大媒體焦點交集</h3>
+<ul>
+<li>台灣半導體供應鏈拉警報？外媒指「關鍵氣體」將被迅速消耗，經濟部急回應 - Yahoo股市</li>
+<li>美伊戰火震盪股市！法人喊AI還會更強，台股長線看多 - MSN</li>
+<li>台美簽貿易協議，國泰金調查：48%肯定對我國經濟、股市有正面影響，13%預期衝擊經濟</li>
+</ul>
+<h3>📈 個股現況與大盤分析</h3>
+<ul>
+<li>加權指數今日收盤為 33400.32，下跌幅度為 -0.54%</li>
+<li>台積電收盤價為 1865.0，下跌幅度為 -1.06%</li>
+<li>鴻海收盤價為 214.5，持平</li>
+</ul>
+<p>今日財經新聞以半導體供應鏈警報、美伊戰爭影響、台美貿易協議等議題為焦點，投資人應密切留意市場動向，並注意個股表現與大盤走勢。</p>
+        <hr>
+        <p style="text-align: center; color: #666;">數據來源：Google News, Yahoo Finance</p>
+        <script>
+            function startClock() {
+                setInterval(() => {
+                    const now = new Date();
+                    document.getElementById('live-clock').innerText = now.toLocaleString('zh-TW', {
+                        timeZone: 'Asia/Taipei', hour12: false
+                    });
+                }, 1000);
+            }
+            startClock();
+        </script>
+    </body>
+    </html>
+    
