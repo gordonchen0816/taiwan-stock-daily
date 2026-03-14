@@ -12,7 +12,7 @@ import markdown
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def get_news_pool(limit=45):
-    # 加入 when:1d 確保只抓 24 小時內新聞，避免資訊穿越
+    # 加上 when:1d 確保抓取 24 小時內新聞
     url = f"https://news.google.com/rss/search?q=股市+經濟+台灣+台股+when:1d&hl=zh-TW&gl=TW&ceid=TW:zh-Hant&t={random.random()}"
     headers = {'User-Agent': 'Mozilla/5.0'}
     pool = []
@@ -28,7 +28,7 @@ def get_news_pool(limit=45):
 
 def get_stock_data():
     tks = {"加權指數": "^TWII", "台積電": "2330.TW", "鴻海": "2317.TW"}
-    res = ""
+    res_list = []
     for name, code in tks.items():
         try:
             d = yf.download(code, period="5d", interval="1d", progress=False)
@@ -37,64 +37,64 @@ def get_stock_data():
                 prev = round(float(d['Close'].iloc[-2].item()), 2)
                 diff = round(curr - prev, 2)
                 pct = round((diff / prev) * 100, 2)
-                res += f"{name}: {curr} (漲跌: {diff}, 幅度: {pct}%) "
+                # 修正為精簡格式：名稱: 點數 (漲跌, 幅度%)
+                res_list.append(f"{name}: {curr} ({diff}, {pct}%)")
         except:
-            res += f"{name}: 獲取失敗 "
-    return res
+            res_list.append(f"{name}: 獲取失敗")
+    return " ".join(res_list)
 
 try:
-    print("--- 啟動 AI 財經主編 (HTML 網頁模式) ---")
+    print("--- 啟動 AI 財經主編 (格式優化版) ---")
     tw_now = datetime.utcnow() + timedelta(hours=8)
     time_str = tw_now.strftime('%Y-%m-%d %H:%M:%S')
     
     news_pool = get_news_pool(50)
     stocks = get_stock_data()
     
-    # 強制繁體中文與嚴格排版格式
+    # 強化 Prompt：要求強制換行與繁體
     prompt = f"""
     任務：專業財經主編分類比對。
-    要求：必須全部使用「繁體中文」輸出。
+    要求：全篇使用「繁體中文」。
     新聞池：{news_pool}
     股市數據：{stocks}
     
-    請嚴格使用 Markdown 語法輸出以下格式：
-    
+    請嚴格依照此 Markdown 格式輸出，標題層級與換行不能變動：
+
     ## 📰 今日各報頭條摘要
-    
+
     ### 🏦 財經綜合焦點 (5則)
-    (條列5則，標題 - 來源)
-    
+    (5則新聞，格式：標題 - 來源)
+
     ### 📖 經濟日報精選 (5則)
-    (條列5則，標題 - 來源)
-    
+    (5則新聞，格式：標題 - 來源)
+
     ### 🌐 Google RSS 熱門 (5則)
-    (條列5則，標題 - 來源)
-    
+    (5則新聞，格式：標題 - 來源)
+
     ## 📌 三大媒體焦點交集 (真正重複報導的事件)
-    [焦點 1]：描述
-    [焦點 2]：描述
-    [焦點 3]：描述
-    
+    [焦點 1]：描述 (請單獨換行)
+    [焦點 2]：描述 (請單獨換行)
+    [焦點 3]：描述 (請單獨換行)
+
     ## 📈 個股現況與大盤分析
     數據：{stocks}
-    評論：(針對數據與今日新聞進行一段專業分析，100字以內)
-    
-    【過濾守則】：
-    1. 剔除過期月份(如10月、12月)或節日(如國慶、封關)。
-    2. 若新聞提到的點數與當前數據 {stocks} 差距過大(超過3000點)，視為舊聞剔除。
+    評論：(針對今日數據與國際局勢進行專業評論，100字內)
+
+    【過濾守則】：剔除過期月份、國慶、封關等舊聞。數據落差過大亦剔除。
     """
     
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "你是一位專業的台灣財經分析專家，僅使用繁體中文回答。"},
+            {"role": "system", "content": "你是一位專業的台灣財經專家，僅使用繁體中文。"},
             {"role": "user", "content": prompt}
         ],
         temperature=0.3
     )
     
     md_text = response.choices[0].message.content
-    html_body = markdown.markdown(md_text, extensions=['tables', 'fenced_code'])
+    # 確保 HTML 轉換時能正確處理換行
+    html_body = markdown.markdown(md_text, extensions=['tables', 'fenced_code', 'nl2br'])
 
     full_html = f"""
     <!DOCTYPE html>
@@ -105,11 +105,11 @@ try:
         <title>台灣股市 AI 精選情報</title>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
         <style>
-            .markdown-body {{ box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }}
+            .markdown-body {{ box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; }}
             @media (max-width: 767px) {{ .markdown-body {{ padding: 15px; }} }}
-            .info-banner {{ background-color: #f0f7ff; border: 1px solid #cce3ff; padding: 20px; border-radius: 10px; margin-bottom: 30px; font-family: sans-serif; }}
-            #live-clock {{ color: #0056b3; font-weight: bold; font-size: 1.1em; }}
-            h1 {{ border-bottom: none !important; }}
+            .info-banner {{ background-color: #f8f9fa; border-left: 5px solid #007bff; padding: 15px; margin-bottom: 30px; font-size: 0.95em; }}
+            #live-clock {{ color: #d73a49; font-weight: bold; }}
+            h1, h2, h3 {{ border-bottom: none !important; }}
         </style>
     </head>
     <body class="markdown-body">
@@ -120,7 +120,7 @@ try:
         </div>
         {html_body}
         <hr>
-        <p style="text-align: center; color: #666;">數據來源：Google News, Yahoo Finance</p>
+        <p style="text-align: center; color: #666; font-size: 0.8em;">數據來源：Google News, Yahoo Finance</p>
         <script>
             function startClock() {{
                 setInterval(() => {{
@@ -138,7 +138,7 @@ try:
 
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(full_html)
-    print(f"--- 網頁更新完成 (繁體中文版) ---")
+    print(f"--- 網頁更新完成 (格式修正版) ---")
 
 except Exception as e:
     print(f"失敗: {traceback.format_exc()}")
