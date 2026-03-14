@@ -1,90 +1,51 @@
-# 📊 台股每日彙整
+# 📊 台灣股市 AI 精選情報 (Taiwan Stock AI Daily)
+![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
+![OpenAI](https://img.shields.io/badge/AI-GPT--3.5-green.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Automation](https://img.shields.io/badge/workflow-GitHub%20Actions-orange.svg)
 
-每天自動抓取台灣股市數據，用 GPT-4o-mini 產生繁體中文彙整報告，透過 GitHub Pages 展示。
+> **這是一個完全自動化的財經情報系統。透過 AI 助理，每 6 小時自動彙整全台重大財經新聞與台股即時數據，並生成動態網頁。**
 
-## 功能
+## 🌐 專案成果預覽
+* **即時報表網址**：[👉 點此查看我的 AI 財經報紙](https://gordonchen0816.github.io/taiwan-stock-daily/)
+* **核心理念**：利用 AI 解決資訊過載，從海量新聞中過濾出真正的焦點交集。
 
-- 📈 大盤指數（加權、櫃買）
-- 🏦 三大法人買賣超（外資、投信、自營）
-- 🔍 個股技術指標（RSI、SMA7/20）
-- 📰 多來源財經新聞（工商、經濟日報、MoneyDJ、鉅亨）
-- 🤖 GPT-4o-mini 繁體中文條列式彙整報告
-- 🕖 每個交易日 07:30 自動執行（GitHub Actions）
+---
 
-## 快速開始
+## 🛠️ 技術架構 (SOP)
 
-### 步驟一：Fork / Clone 這個 Repo
+本專案由三大部分組成，實現了從數據抓取到網頁發布的全自動流水線：
 
-```bash
-git clone https://github.com/你的帳號/taiwan-stock-daily.git
-cd taiwan-stock-daily
-```
+### 1. 數據獲取 (Data Acquisition)
+* **新聞池**：利用 `Requests` 與 `BeautifulSoup4` 爬取 Google News RSS，獲取包含工商時報、經濟日報、Yahoo 財經等超過 40 則即時頭條。
+* **股市數據**：使用 `yfinance` 介接 Yahoo Finance API，獲取加權指數、台積電 (2330)、鴻海 (2317) 的即時漲跌幅與點數。
 
-### 步驟二：取得 OpenAI API Key
+### 2. AI 核心分析 (AI Engine)
+* **模型**：使用 OpenAI `gpt-3.5-turbo`。
+* **任務**：AI 扮演「專業財經主編」，對混合新聞池進行分類、交叉比對，找出三大媒體共同關注的「焦點交集」，並給予專業的操作建議。
 
-1. 前往 https://platform.openai.com/
-2. 登入 → 右上角頭像 → **API Keys**
-3. 點「Create new secret key」
-4. 複製產生的 Key（格式：`sk-...`）
+### 3. 自動化部署 (CI/CD)
+* **環境**：基於 GitHub Actions 的雲端虛擬機。
+* **排程**：設定 `Cron Job` 每 6 小時自動觸發一次（台灣時間 02:00, 08:00, 14:00, 20:00）。
+* **輸出**：使用 `markdown` 套件將分析結果轉為 HTML，並透過 GitHub Pages 託管網頁。
 
-### 步驟三：設定 GitHub Secrets
+---
 
-1. 進入你的 Repo → **Settings** → **Secrets and variables** → **Actions**
-2. 點「New repository secret」
-3. Name：`OPENAI_API_KEY`，Value：貼上你的 Key
-4. 儲存
+## 🧑‍💻 如何解釋這個專案 (口語版)
 
-### 步驟四：啟用 GitHub Pages
+1. **自動讀報**：程式每 6 小時會像實習生一樣，幫我把各大報紙的財經頭條全部抓回來。
+2. **AI 主編**：AI 會閱讀這幾十則新聞，並告訴我「哪三件事是所有媒體都在關注的」，這就是所謂的『焦點交集』。
+3. **動態發布**：分析完後，它會自己寫成 HTML 代碼，並推送到雲端，讓所有人透過一個網址就能看到即時更新的報紙。
 
-1. Repo → **Settings** → **Pages**
-2. Source 選「Deploy from a branch」
-3. Branch 選 `main`，資料夾選 `/docs`
-4. 儲存後等 1-2 分鐘，網址會出現在頁面上
+---
 
-### 步驟五：手動觸發測試
+## 🚀 如何使用本專案
 
-1. Repo → **Actions** → **Taiwan Stock Daily Digest**
-2. 點「Run workflow」→「Run workflow」
-3. 等待執行完成，重新整理你的 GitHub Pages 網址
+如果你想打造屬於自己的 AI 報紙：
+1. **Fork** 本專案。
+2. 在 GitHub 設定中加入 `OPENAI_API_KEY` 的 **Secret**。
+3. 開啟 **GitHub Pages** 功能。
+4. 手動執行一次 **Actions**，你的專案就開始 24 小時運轉了！
 
-## 自訂個股清單
-
-編輯 `scripts/fetch_market.py` 第 18 行：
-
-```python
-WATCH_LIST = ["2330", "2317", "2454", "2412", "2881"]
-#              台積電   鴻海    聯發科   中華電   富邦金
-```
-
-## 本機測試
-
-```bash
-pip install -r requirements.txt
-export OPENAI_API_KEY="sk-你的key"
-python scripts/main.py
-```
-
-## 專案結構
-
-```
-├── scripts/
-│   ├── main.py             # 主程式（串接所有模組）
-│   ├── fetch_news.py       # 新聞 RSS 爬蟲
-│   ├── fetch_market.py     # 大盤、個股、法人數據
-│   ├── generate_report.py  # GPT 報告產生器
-│   └── cleanup.py          # 清理舊資料
-├── data/                   # 每日 JSON（自動產生）
-├── docs/
-│   ├── index.html          # GitHub Pages 前端
-│   ├── latest.json         # 最新一天資料
-│   └── index_list.json     # 日期索引（翻頁用）
-└── .github/workflows/
-    └── daily.yml           # GitHub Actions 排程
-```
-
-## 資料來源
-
-- 大盤指數：[TWSE 官方 API](https://www.twse.com.tw/)（免費）
-- 法人買賣超：[TWSE T86](https://www.twse.com.tw/fund/T86)（免費）
-- 新聞：工商時報、經濟日報、MoneyDJ、鉅亨網（RSS）
-- AI 報告：OpenAI GPT-4o-mini
+---
+*本專案僅供學術研究與個人參考，投資請謹慎評估風險。*
