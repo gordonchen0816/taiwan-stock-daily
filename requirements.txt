@@ -1,6 +1,6 @@
+markdown
 yfinance
 openai
 requests
 beautifulsoup4
 lxml
-markdown
