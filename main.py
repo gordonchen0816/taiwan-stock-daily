@@ -7,12 +7,70 @@ import traceback
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 import markdown
+import pandas as pd
 
 # 1. 配置 OpenAI Client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+def calculate_rsi(data, window=14):
+    delta = data.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
+    rs = gain / loss
+    return 100 - (100 / (1 + rs))
+
+def get_detailed_stock_info():
+    # 定義監控標的
+    tks = {
+        "加權指數": "^TWII",
+        "OTC指數": "^TWOII",
+        "台積電": "2330.TW",
+        "精材": "7769.TW",
+        "鴻海": "2317.TW"
+    }
+    
+    cards_html = ""
+    summary_for_ai = ""
+    
+    for name, code in tks.items():
+        try:
+            # 抓取過去 40 天數據以計算 RSI 與 SMA20
+            df = yf.download(code, period="40d", interval="1d", progress=False)
+            if not df.empty:
+                # 取得最新與昨日數據
+                curr_price = round(float(df['Close'].iloc[-1].item()), 2)
+                prev_price = round(float(df['Close'].iloc[-2].item()), 2)
+                diff = round(curr_price - prev_price, 2)
+                pct = round((diff / prev_price) * 100, 2)
+                
+                # 計算技術指標
+                sma7 = round(df['Close'].rolling(window=7).mean().iloc[-1].item(), 2)
+                sma20 = round(df['Close'].rolling(window=20).mean().iloc[-1].item(), 2)
+                rsi = round(calculate_rsi(df['Close']).iloc[-1].item(), 2)
+                
+                # 均線趨勢判斷
+                trend = "均線多頭" if sma7 > sma20 else "均線空頭"
+                color = "#d73a49" if diff > 0 else "#22863a" # 紅漲綠跌 (台股習慣)
+                
+                # 建立 HTML 字卡格式
+                cards_html += f"""
+                <div class="stock-card">
+                    <div class="stock-name">{name}</div>
+                    <div class="stock-price">${curr_price}</div>
+                    <div class="stock-change" style="color:{color}">{'+' if diff > 0 else ''}{diff} ({pct}%)</div>
+                    <div class="stock-meta">RSI: {rsi}</div>
+                    <div class="stock-meta">SMA7: ${sma7}</div>
+                    <div class="stock-meta">SMA20: ${sma20}</div>
+                    <div class="stock-trend">{trend}</div>
+                </div>
+                """
+                summary_for_ai += f"{name}: {curr_price} ({pct}%, {trend}); "
+        except:
+            cards_html += f"<div class='stock-card'>{name}: 讀取失敗</div>"
+            
+    return cards_html, summary_for_ai
+
 def get_news_pool(limit=45):
-    # 鎖定 24 小時內新聞，確保內容新鮮度，避免資訊穿越
     url = f"https://news.google.com/rss/search?q=股市+經濟+台灣+台股+when:1d&hl=zh-TW&gl=TW&ceid=TW:zh-Hant&t={random.random()}"
     headers = {'User-Agent': 'Mozilla/5.0'}
     pool = []
@@ -26,79 +84,45 @@ def get_news_pool(limit=45):
     except:
         return ["無法取得即時新聞池"]
 
-def get_stock_data():
-    # 這裡維持加權指數與核心權值股的監控
-    tks = {"加權指數": "^TWII", "台積電": "2330.TW", "鴻海": "2317.TW"}
-    res_list = []
-    for name, code in tks.items():
-        try:
-            d = yf.download(code, period="5d", interval="1d", progress=False)
-            if not d.empty:
-                curr = round(float(d['Close'].iloc[-1].item()), 2)
-                prev = round(float(d['Close'].iloc[-2].item()), 2)
-                diff = round(curr - prev, 2)
-                pct = round((diff / prev) * 100, 2)
-                # 統一格式輸出：名稱: 點數 (漲跌, 幅度%)
-                res_list.append(f"{name}: {curr} ({diff}, {pct}%)")
-        except:
-            res_list.append(f"{name}: 獲取失敗")
-    return " ".join(res_list)
-
 try:
-    print("--- 啟動 AI 財經主編 (數據同步強化版) ---")
+    print("--- 啟動 AI 財經主編 (數據字卡版) ---")
     tw_now = datetime.utcnow() + timedelta(hours=8)
     time_str = tw_now.strftime('%Y-%m-%d %H:%M:%S')
     
+    # 獲取字卡 HTML 與 AI 分析用的摘要
+    stock_cards, stock_summary = get_detailed_stock_info()
     news_pool = get_news_pool(50)
-    stocks = get_stock_data()
     
-    # 重新設計 Prompt，強制 AI 維持數據與分析的一致性
     prompt = f"""
     任務：將台灣財經資訊轉化為一份「每日彙整報告」。
-    語言：全篇必須使用「繁體中文」。
-    今日真實股市數據：{stocks}
-    當前新聞池內容：{news_pool}
+    今日股市表現：{stock_summary}
+    新聞池內容：{news_pool}
     
-    請嚴格依照以下格式輸出 Markdown，並確保分析內容與上述數據 {stocks} 完全吻合：
-
-    # 📈 台股每日彙整報告
-
+    請依照以下格式輸出繁體中文 Markdown：
     ## 📰 今日重點摘要
-    (請從新聞池中歸納出 5 個最重要的台股、經濟事件，並加上簡短分析。格式：1. **關鍵字**：描述)
+    (歸納5個重點，標籤化處理如 1. **[法案/事件]**：描述)
 
-    ## 📊 市場概況
-    當前股市真實數據為：{stocks}。
-    (請根據上述數據描述整體大盤與權值股的強弱表現。若數據顯示下跌，分析應偏向謹慎；若上漲則偏向樂觀。)
+    ## 📊 市場概況與技術解讀
+    (參考最新數據 {stock_summary}，分析大盤與權值股的連動，並解釋技術面趨勢)
 
-    ## 🔍 技術分析解讀
-    (針對數據 {stocks} 的點數與漲跌幅進行解讀。請判斷目前是多頭、空頭還是盤整，並根據新聞提到的市場心理，給出短期的支撐與壓力觀察建議。)
-
-    ## 😱 市場情緒
-    (綜合新聞池與數據表現，判斷投資人情緒。是「極度恐懼」、「謹慎觀望」還是「樂觀追價」？請說明原因。)
-
-    ## ⚠️ 風險提醒
-    (從新聞中找出未來 24-48 小時內潛在的利空因素或不確定性，如美股波動、財報公佈或國際地緣政治。)
+    ## 😱 市場情緒與風險提醒
+    (綜合新聞判斷情緒，列出未來 24 小時風險)
 
     ## 🎯 今日觀察重點
-    (列出 3 個今日收盤後或明日開盤最值得關注的動向。)
-
-    【嚴格過濾指令】：
-    1. 數據唯一性：分析中若提到點數或漲幅，必須與 {stocks} 內容完全一致，嚴禁自行虛構數字。
-    2. 時效性檢查：若新聞池中出現「去年」、「國慶」、「10月/12月」等明顯過期字眼，請直接剔除該新聞不予分析。
+    (列出3個明日開盤觀察點)
     """
     
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "你是一位專業的台灣財經分析專家，擅長將雜亂數據與新聞歸納為高品質繁體彙整報告。"},
+            {"role": "system", "content": "你是一位專業台灣財經分析專家，擅長整合技術指標與新聞。"},
             {"role": "user", "content": prompt}
         ],
         temperature=0.3
     )
     
     md_text = response.choices[0].message.content
-    # 使用 nl2br 擴充套件確保換行在 HTML 中正確顯示
-    html_body = markdown.markdown(md_text, extensions=['tables', 'fenced_code', 'nl2br'])
+    html_body = markdown.markdown(md_text, extensions=['nl2br'])
 
     full_html = f"""
     <!DOCTYPE html>
@@ -109,29 +133,43 @@ try:
         <title>台股每日彙整報告</title>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
         <style>
-            .markdown-body {{ box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; }}
+            .markdown-body {{ box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; font-family: sans-serif; }}
             @media (max-width: 767px) {{ .markdown-body {{ padding: 15px; }} }}
-            .info-banner {{ background-color: #f8f9fa; border-left: 5px solid #007bff; padding: 15px; margin-bottom: 30px; font-size: 0.9em; }}
-            h1, h2 {{ border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; margin-top: 1.5em; }}
-            strong {{ color: #d73a49; }}
-            #update-time {{ color: #666; font-weight: normal; }}
+            .info-banner {{ background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9em; }}
+            /* 字卡容器樣式 */
+            .cards-container {{ display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 30px; }}
+            .stock-card {{ 
+                background: #fff; border: 1px solid #e1e4e8; border-radius: 10px; padding: 15px; 
+                flex: 1; min-width: 160px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }}
+            .stock-name {{ font-weight: bold; font-size: 1.1em; color: #0366d6; margin-bottom: 5px; }}
+            .stock-price {{ font-size: 1.4em; font-weight: bold; }}
+            .stock-change {{ font-size: 0.9em; margin-bottom: 10px; }}
+            .stock-meta {{ font-size: 0.8em; color: #586069; line-height: 1.4; }}
+            .stock-trend {{ margin-top: 8px; font-size: 0.85em; font-weight: bold; color: #24292e; background: #f1f8ff; display: inline-block; padding: 2px 6px; border-radius: 4px; }}
         </style>
     </head>
     <body class="markdown-body">
+        <h1>📈 台股每日彙整報告</h1>
         <div class="info-banner">
-            <p>📋 <strong>最後更新：</strong> {time_str} (台北時間)</p>
-            <p>🏦 <strong>監控對象：</strong> 加權指數、台積電 (2330)、鴻海 (2317)</p>
+            📋 最後更新：{time_str} (台北時間)
         </div>
+        
+        <h2>📊 市場數據監測</h2>
+        <div class="cards-container">
+            {stock_cards}
+        </div>
+
         {html_body}
         <hr>
-        <p style="text-align: center; color: #999; font-size: 0.8em;">數據來源：Yahoo Finance, Google News RSS</p>
+        <p style="text-align: center; color: #999; font-size: 0.8em;">數據來源：Yahoo Finance (20日均線計算), Google News</p>
     </body>
     </html>
     """
 
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(full_html)
-    print(f"--- 網頁更新完成 (數據同步模式) ---")
+    print("--- 網頁更新完成 (數據字卡版) ---")
 
 except Exception as e:
     print(f"失敗: {traceback.format_exc()}")
