@@ -7,26 +7,25 @@
         <title>台股每日彙整報告</title>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
         <style>
-            .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; font-family: sans-serif; }
+            .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 1000px; margin: 0 auto; padding: 45px; font-family: sans-serif; }
             @media (max-width: 767px) { .markdown-body { padding: 15px; } }
-            .info-banner { background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9em; }
-            /* 字卡容器樣式 */
-            .cards-container { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 30px; }
+            .info-banner { background-color: #f8f9fa; border-left: 5px solid #0366d6; padding: 15px; margin-bottom: 25px; border-radius: 4px; }
+            .cards-container { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 30px; }
             .stock-card { 
-                background: #fff; border: 1px solid #e1e4e8; border-radius: 10px; padding: 15px; 
-                flex: 1; min-width: 160px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                background: #fff; border: 1px solid #e1e4e8; border-radius: 10px; padding: 12px; 
+                flex: 1; min-width: 150px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             }
-            .stock-name { font-weight: bold; font-size: 1.1em; color: #0366d6; margin-bottom: 5px; }
-            .stock-price { font-size: 1.4em; font-weight: bold; }
-            .stock-change { font-size: 0.9em; margin-bottom: 10px; }
-            .stock-meta { font-size: 0.8em; color: #586069; line-height: 1.4; }
-            .stock-trend { margin-top: 8px; font-size: 0.85em; font-weight: bold; color: #24292e; background: #f1f8ff; display: inline-block; padding: 2px 6px; border-radius: 4px; }
+            .stock-name { font-weight: bold; font-size: 1em; color: #0366d6; margin-bottom: 4px; }
+            .stock-price { font-size: 1.25em; font-weight: bold; color: #24292e; }
+            .stock-change { font-size: 0.85em; margin-bottom: 8px; font-weight: bold; }
+            .stock-meta { font-size: 0.75em; color: #586069; line-height: 1.4; }
+            .stock-trend { margin-top: 8px; font-size: 0.75em; font-weight: bold; color: #0366d6; background: #f1f8ff; padding: 2px 8px; border-radius: 10px; display: inline-block; }
         </style>
     </head>
     <body class="markdown-body">
         <h1>📈 台股每日彙整報告</h1>
         <div class="info-banner">
-            📋 最後更新：2026-03-16 21:17:20 (台北時間)
+            📋 <strong>最後更新：</strong> 2026-03-16 21:26:58 (台北時間)
         </div>
         
         <h2>📊 市場數據監測</h2>
@@ -34,16 +33,16 @@
             
                 <div class="stock-card">
                     <div class="stock-name">加權指數</div>
-                    <div class="stock-price">$33342.51</div>
+                    <div class="stock-price">$33,342.51</div>
                     <div class="stock-change" style="color:#22863a">-57.81 (-0.17%)</div>
                     <div class="stock-meta">RSI: 47.71</div>
-                    <div class="stock-meta">SMA7: $33274.39</div>
-                    <div class="stock-meta">SMA20: $33540.52</div>
+                    <div class="stock-meta">SMA7: $33,274.39</div>
+                    <div class="stock-meta">SMA20: $33,540.52</div>
                     <div class="stock-trend">均線空頭</div>
                 </div>
                 
                 <div class="stock-card">
-                    <div class="stock-name">OTC指數</div>
+                    <div class="stock-name">櫃買指數</div>
                     <div class="stock-price">$312.9</div>
                     <div class="stock-change" style="color:#d73a49">+1.31 (0.42%)</div>
                     <div class="stock-meta">RSI: 57.9</div>
@@ -54,21 +53,21 @@
                 
                 <div class="stock-card">
                     <div class="stock-name">台積電</div>
-                    <div class="stock-price">$1845.0</div>
+                    <div class="stock-price">$1,845.0</div>
                     <div class="stock-change" style="color:#22863a">-20.0 (-1.07%)</div>
                     <div class="stock-meta">RSI: 45.53</div>
-                    <div class="stock-meta">SMA7: $1869.29</div>
-                    <div class="stock-meta">SMA20: $1889.5</div>
+                    <div class="stock-meta">SMA7: $1,869.29</div>
+                    <div class="stock-meta">SMA20: $1,889.5</div>
                     <div class="stock-trend">均線空頭</div>
                 </div>
                 
                 <div class="stock-card">
                     <div class="stock-name">精材</div>
-                    <div class="stock-price">$4075.0</div>
+                    <div class="stock-price">$4,075.0</div>
                     <div class="stock-change" style="color:#d73a49">+125.0 (3.16%)</div>
                     <div class="stock-meta">RSI: 44.23</div>
-                    <div class="stock-meta">SMA7: $4132.14</div>
-                    <div class="stock-meta">SMA20: $4197.25</div>
+                    <div class="stock-meta">SMA7: $4,132.14</div>
+                    <div class="stock-meta">SMA20: $4,197.25</div>
                     <div class="stock-trend">均線空頭</div>
                 </div>
                 
@@ -86,24 +85,26 @@
 
         <h2>📰 今日重點摘要</h2>
 <ol>
-<li><strong>[經濟成長]</strong>：主計處上修經濟成長，但王世堅指出產業失衡、民生無感。</li>
-<li><strong>[GDP預測]</strong>：國泰金估計台灣今年GDP成長將達5.8%。</li>
-<li><strong>[證交所]</strong>：證交所赴美建構亞洲資產管理中心，取得具體成效。</li>
-<li><strong>[台股表現]</strong>：台股今年以來漲幅達15.3%，居全球第5強。</li>
-<li><strong>[中東局勢]</strong>：中東戰事與Fed利率變動牽動市場，市場情緒受到影響。</li>
+<li><strong>主計處上修經濟成長</strong>：王世堅對產業失衡、民生無感表示嘆息。</li>
+<li><strong>多空互抵</strong>：國泰金估計台灣今年GDP成長5.8%。</li>
+<li><strong>專家示警</strong>：「狼群戰術」或成日本經濟安全保障隱憂。</li>
+<li><strong>賴清德倡建非紅供應鏈</strong>：強調「民主＋經濟＋科技」加值效應。</li>
+<li><strong>原油飆漲、美股走跌</strong>：日經指數恐承壓，台股應審慎應對。</li>
 </ol>
 <h2>📊 市場概況與技術解讀</h2>
-<p>參考最新數據：加權指數為33342.51，下跌0.17%，呈均線空頭趨勢；OTC指數為312.9，上漲0.42%，呈均線多頭趨勢。個股方面，台積電下跌1.07%，精材上漲3.16%，鴻海上漲0.93%。整體市場呈現震盪格局，權值股多數呈現空頭趨勢。</p>
+<p>結合數據：加權指數為33342.51 (-0.17%，均線空頭，RSI:47.71)；櫃買指數為312.9 (0.42%，均線多頭，RSI:57.9)；台積電為1845.0 (-1.07%，均線空頭，RSI:45.53)；精材為4075.0 (3.16%，均線空頭，RSI:44.23)；鴻海為216.5 (0.93%，均線空頭，RSI:42.94)。分析加權指數、櫃買指數與個股的表現及趨勢。</p>
+<h2>🔍 技術分析與心理</h2>
+<p>解釋：RSI指標反映市場超買或超賣情況，均線則顯示價格走勢方向。目前市場可能處於中性偏空頭狀態，投資人應謹慎應對。</p>
 <h2>😱 市場情緒與風險提醒</h2>
-<p>市場情緒受到中東戰事與油價波動的影響，未來24小時內風險仍然存在，投資人應保持警覺。</p>
+<p>判斷：投資人情緒或許稍有擔憂，未來24小時內可能面臨原油價格波動及全球經濟不確定性風險。</p>
 <h2>🎯 今日觀察重點</h2>
 <ol>
-<li><strong>[台股表現]</strong>：關注台股開盤走勢，特別留意權值股的表現。</li>
-<li><strong>[全球局勢]</strong>：密切關注中東局勢對市場的持續影響。</li>
-<li><strong>[經濟數據]</strong>：留意最新經濟數據公布對市場情緒的影響。</li>
+<li><strong>全球經濟走勢</strong>：密切關注美伊局勢對全球經濟的影響。</li>
+<li><strong>國內政策變化</strong>：關注台灣政策對產業的影響，特別是非紅供應鏈的建構。</li>
+<li><strong>個股表現</strong>：觀察台積電、精材等個股的走勢，可能影響大盤指數波動。</li>
 </ol>
         <hr>
-        <p style="text-align: center; color: #999; font-size: 0.8em;">數據來源：Yahoo Finance (20日均線計算), Google News</p>
+        <p style="text-align: center; color: #999; font-size: 0.7em;">Data Source: Yahoo Finance & Google News</p>
     </body>
     </html>
     
