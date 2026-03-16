@@ -358,7 +358,7 @@ try:
     </div>
 
     <footer class="site-footer">
-        數據來源：Google News RSS &bull; Yahoo Finance &bull; OpenAI GPT-3.5
+        數據來源：鉅亨網 RSS &bull; Yahoo Finance &bull; OpenAI GPT-4o-mini
     </footer>
 </div>
 
