@@ -7,44 +7,103 @@
         <title>台股每日彙整報告</title>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
         <style>
-            .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; }
+            .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; font-family: sans-serif; }
             @media (max-width: 767px) { .markdown-body { padding: 15px; } }
-            .info-banner { background-color: #f8f9fa; border-left: 5px solid #007bff; padding: 15px; margin-bottom: 30px; font-size: 0.9em; }
-            h1, h2 { border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; margin-top: 1.5em; }
-            strong { color: #d73a49; }
-            #update-time { color: #666; font-weight: normal; }
+            .info-banner { background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9em; }
+            /* 字卡容器樣式 */
+            .cards-container { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 30px; }
+            .stock-card { 
+                background: #fff; border: 1px solid #e1e4e8; border-radius: 10px; padding: 15px; 
+                flex: 1; min-width: 160px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }
+            .stock-name { font-weight: bold; font-size: 1.1em; color: #0366d6; margin-bottom: 5px; }
+            .stock-price { font-size: 1.4em; font-weight: bold; }
+            .stock-change { font-size: 0.9em; margin-bottom: 10px; }
+            .stock-meta { font-size: 0.8em; color: #586069; line-height: 1.4; }
+            .stock-trend { margin-top: 8px; font-size: 0.85em; font-weight: bold; color: #24292e; background: #f1f8ff; display: inline-block; padding: 2px 6px; border-radius: 4px; }
         </style>
     </head>
     <body class="markdown-body">
-        <div class="info-banner">
-            <p>📋 <strong>最後更新：</strong> 2026-03-16 21:11:27 (台北時間)</p>
-            <p>🏦 <strong>監控對象：</strong> 加權指數、台積電 (2330)、鴻海 (2317)</p>
-        </div>
         <h1>📈 台股每日彙整報告</h1>
-<h2>📰 今日重點摘要</h2>
+        <div class="info-banner">
+            📋 最後更新：2026-03-16 21:17:20 (台北時間)
+        </div>
+        
+        <h2>📊 市場數據監測</h2>
+        <div class="cards-container">
+            
+                <div class="stock-card">
+                    <div class="stock-name">加權指數</div>
+                    <div class="stock-price">$33342.51</div>
+                    <div class="stock-change" style="color:#22863a">-57.81 (-0.17%)</div>
+                    <div class="stock-meta">RSI: 47.71</div>
+                    <div class="stock-meta">SMA7: $33274.39</div>
+                    <div class="stock-meta">SMA20: $33540.52</div>
+                    <div class="stock-trend">均線空頭</div>
+                </div>
+                
+                <div class="stock-card">
+                    <div class="stock-name">OTC指數</div>
+                    <div class="stock-price">$312.9</div>
+                    <div class="stock-change" style="color:#d73a49">+1.31 (0.42%)</div>
+                    <div class="stock-meta">RSI: 57.9</div>
+                    <div class="stock-meta">SMA7: $304.74</div>
+                    <div class="stock-meta">SMA20: $303.82</div>
+                    <div class="stock-trend">均線多頭</div>
+                </div>
+                
+                <div class="stock-card">
+                    <div class="stock-name">台積電</div>
+                    <div class="stock-price">$1845.0</div>
+                    <div class="stock-change" style="color:#22863a">-20.0 (-1.07%)</div>
+                    <div class="stock-meta">RSI: 45.53</div>
+                    <div class="stock-meta">SMA7: $1869.29</div>
+                    <div class="stock-meta">SMA20: $1889.5</div>
+                    <div class="stock-trend">均線空頭</div>
+                </div>
+                
+                <div class="stock-card">
+                    <div class="stock-name">精材</div>
+                    <div class="stock-price">$4075.0</div>
+                    <div class="stock-change" style="color:#d73a49">+125.0 (3.16%)</div>
+                    <div class="stock-meta">RSI: 44.23</div>
+                    <div class="stock-meta">SMA7: $4132.14</div>
+                    <div class="stock-meta">SMA20: $4197.25</div>
+                    <div class="stock-trend">均線空頭</div>
+                </div>
+                
+                <div class="stock-card">
+                    <div class="stock-name">鴻海</div>
+                    <div class="stock-price">$216.5</div>
+                    <div class="stock-change" style="color:#d73a49">+2.0 (0.93%)</div>
+                    <div class="stock-meta">RSI: 42.94</div>
+                    <div class="stock-meta">SMA7: $215.36</div>
+                    <div class="stock-meta">SMA20: $223.18</div>
+                    <div class="stock-trend">均線空頭</div>
+                </div>
+                
+        </div>
+
+        <h2>📰 今日重點摘要</h2>
 <ol>
-<li><strong>主計處上修經濟成長</strong>：主計處上調經濟成長預測，但王世堅對產業失衡及民生議題表達擔憂。</li>
-<li><strong>多空互抵 GDP成長5.8%</strong>：國泰金估計台灣今年GDP成長率將達5.8%，市場看法複雜。</li>
-<li><strong>狼群戰術警示</strong>：專家警告日本經濟安全或將受到威脅，需留意全球經濟版圖變化。</li>
-<li><strong>賴清德強化經濟韌性</strong>：賴清德提出「民主＋經濟＋科技」政策以強化經濟韌性。</li>
-<li><strong>原油飆漲影響</strong>：原油價格攀升、美股下跌，對台股造成壓力。</li>
+<li><strong>[經濟成長]</strong>：主計處上修經濟成長，但王世堅指出產業失衡、民生無感。</li>
+<li><strong>[GDP預測]</strong>：國泰金估計台灣今年GDP成長將達5.8%。</li>
+<li><strong>[證交所]</strong>：證交所赴美建構亞洲資產管理中心，取得具體成效。</li>
+<li><strong>[台股表現]</strong>：台股今年以來漲幅達15.3%，居全球第5強。</li>
+<li><strong>[中東局勢]</strong>：中東戰事與Fed利率變動牽動市場，市場情緒受到影響。</li>
 </ol>
-<h2>📊 市場概況</h2>
-<p>當前股市真實數據為：加權指數: 33342.51 (-57.81, -0.17%) 台積電: 1845.0 (-20.0, -1.07%) 鴻海: 216.5 (2.0, 0.93%)。整體市場呈現小幅下跌，台積電走低，鴻海則略微上揚。</p>
-<h2>🔍 技術分析解讀</h2>
-<p>加權指數小幅下跌，台積電跌幅較大，顯示市場整體較為謹慎。建議留意加權指數在33300點附近的支撐位，台積電則可能遇到壓力在1850點。</p>
-<h2>😱 市場情緒</h2>
-<p>綜合新聞內容與市場表現，投資人情緒傾向謹慎觀望。經濟成長與地緣政治風險仍是市場焦點，投資人對未來持觀望態度。</p>
-<h2>⚠️ 風險提醒</h2>
-<p>美伊衝突升溫可能帶來地緣政治風險，需留意全球市場波動。另外，經濟成長與產業結構調整也可能影響市場穩定。</p>
+<h2>📊 市場概況與技術解讀</h2>
+<p>參考最新數據：加權指數為33342.51，下跌0.17%，呈均線空頭趨勢；OTC指數為312.9，上漲0.42%，呈均線多頭趨勢。個股方面，台積電下跌1.07%，精材上漲3.16%，鴻海上漲0.93%。整體市場呈現震盪格局，權值股多數呈現空頭趨勢。</p>
+<h2>😱 市場情緒與風險提醒</h2>
+<p>市場情緒受到中東戰事與油價波動的影響，未來24小時內風險仍然存在，投資人應保持警覺。</p>
 <h2>🎯 今日觀察重點</h2>
 <ol>
-<li>美伊衝突發展對市場影響。</li>
-<li>台灣經濟政策與產業調整動向。</li>
-<li>技術股走勢與全球市場連動情況。</li>
+<li><strong>[台股表現]</strong>：關注台股開盤走勢，特別留意權值股的表現。</li>
+<li><strong>[全球局勢]</strong>：密切關注中東局勢對市場的持續影響。</li>
+<li><strong>[經濟數據]</strong>：留意最新經濟數據公布對市場情緒的影響。</li>
 </ol>
         <hr>
-        <p style="text-align: center; color: #999; font-size: 0.8em;">數據來源：Yahoo Finance, Google News RSS</p>
+        <p style="text-align: center; color: #999; font-size: 0.8em;">數據來源：Yahoo Finance (20日均線計算), Google News</p>
     </body>
     </html>
     
