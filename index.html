@@ -1,71 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣股市 AI 精選情報</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* ── 基礎重置 ── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    <!DOCTYPE html>
-    <html lang="zh-TW">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>台灣股市 AI 精選情報</title>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
-        <style>
-            .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; }
-            @media (max-width: 767px) { .markdown-body { padding: 15px; } }
-            .info-banner { background-color: #f8f9fa; border-left: 5px solid #007bff; padding: 15px; margin-bottom: 30px; font-size: 0.95em; }
-            #live-clock { color: #d73a49; font-weight: bold; }
-            h1, h2, h3 { border-bottom: none !important; }
-        </style>
-    </head>
-    <body class="markdown-body">
-        <h1>台灣股市 AI 精選情報</h1>
-        <div class="info-banner">
-            <p>最後更新時間：2026-03-16 14:04:00 (台北時間)</p>
-            <p>您的瀏覽時間：<span id="live-clock">讀取中...</span></p>
+        :root {
+            --bg:        #0d1117;
+            --surface:   #161b22;
+            --border:    #30363d;
+            --text:      #e6edf3;
+            --muted:     #8b949e;
+            --accent:    #58a6ff;
+            --up:        #3fb950;
+            --down:      #f85149;
+            --up-bg:     #0d2818;
+            --down-bg:   #2d1117;
+            --tag-bg:    #1f2937;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Noto Sans TC", sans-serif;
+            font-size: 15px;
+            line-height: 1.75;
+        }
+
+        /* ── 版面容器 ── */
+        .page-wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 32px 20px 64px;
+        }
+
+        /* ── 頁首 ── */
+        .site-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 18px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .site-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 0.02em;
+        }
+        .site-meta {
+            font-family: "JetBrains Mono", monospace;
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+        #live-clock { color: var(--accent); }
+
+        /* ── 股價卡片區塊 ── */
+        .stock-section {
+            margin-bottom: 32px;
+        }
+        .section-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+        .stock-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+        }
+        .stock-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            transition: transform 0.15s ease;
+        }
+        .stock-card:hover { transform: translateY(-2px); }
+        .stock-card.up   { border-left: 3px solid var(--up);   background: var(--up-bg);   }
+        .stock-card.down { border-left: 3px solid var(--down); background: var(--down-bg); }
+        .stock-name  { font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; }
+        .stock-price { font-family: "JetBrains Mono", monospace; font-size: 1.25rem; font-weight: 600; }
+        .stock-card.up   .stock-price { color: var(--up);   }
+        .stock-card.down .stock-price { color: var(--down); }
+        .stock-change { font-family: "JetBrains Mono", monospace; font-size: 0.78rem; margin-top: 4px; color: var(--muted); }
+
+        /* ── 分隔線 ── */
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 28px 0;
+        }
+
+        /* ── Markdown 內容區 ── */
+        .md-body h2 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 32px 0 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+        .md-body h2:first-child { margin-top: 0; }
+
+        /* ── 盤勢評論特別樣式 ── */
+        .md-body h2:first-of-type + p {
+            background: #111827;
+            border-left: 4px solid var(--accent);
+            border-radius: 0 8px 8px 0;
+            padding: 16px 20px;
+            color: #c9d1d9;
+            font-size: 0.95rem;
+            line-height: 1.9;
+            margin-bottom: 8px;
+        }
+
+        .md-body ul {
+            list-style: none;
+            padding: 0;
+        }
+        .md-body ul li {
+            padding: 9px 0;
+            border-bottom: 1px solid #1c2128;
+            font-size: 0.92rem;
+            color: #c9d1d9;
+        }
+        .md-body ul li:last-child { border-bottom: none; }
+        .md-body a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .md-body a:hover { text-decoration: underline; }
+
+        /* ── 焦點交集 ── */
+        .md-body strong { color: #f0f6fc; }
+
+        /* ── 頁尾 ── */
+        .site-footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-top: 48px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        @media (max-width: 600px) {
+            .stock-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+    <!-- 頁首 -->
+    <header class="site-header">
+        <div class="site-title">📊 台灣股市 AI 精選情報</div>
+        <div class="site-meta">
+            更新：2026-03-16 14:18:10（台北）&nbsp;｜&nbsp; 現在：<span id="live-clock">—</span>
         </div>
-        <h2>📰 今日各報頭條摘要</h2>
-<h3>🏦 財經綜合焦點 (5則)</h3>
-<ol>
-<li>原油飆漲、美股走跌 日經指數恐承壓 台股審慎應對 - Yahoo股市</li>
-<li>台股抗跌！今年以來漲15.3％ 居全球第5強 - 自由財經</li>
-<li>中東戰火與Fed利率牽動市場！企業獲利能否支撐股市？法人：台股「三多行情」仍具支撐| 江勳紘| 全解析 - 風傳媒</li>
-<li>油價擾動不怕！台股維持偏多震盪 不改基本面主軸 - stock.ltn.com.tw</li>
-<li>趁多頭受挫 永豐金：拉回布局 AI 各產業龍頭股 - 經濟日報</li>
-</ol>
-<h3>📖 經濟日報精選 (5則)</h3>
-<ol>
-<li>台股科技、市值型 夯 - 經濟日報</li>
-<li>本周除息高峰 00919、00929、00713、00981A等22檔台股ETF將除息 - 聯合新聞網</li>
-<li>國泰首檔台股主動式ETF 00400A採月配息 - 聯合新聞網</li>
-<li>不願被市場看衰！台股早盤上漲逾2百點 台積電開1875元 - Yahoo股市</li>
-<li>台股ETF 低接買盤湧進 - Yahoo股市</li>
-</ol>
-<h3>🌐 Google RSS 熱門 (5則)</h3>
-<ol>
-<li>經濟需求仍強 台股前景明亮 - Yahoo股市</li>
-<li>打造非紅供應鏈 賴清德：「民主＋經濟＋科技」加值效應強化經濟韌性 - Yahoo股市</li>
-<li>矽盛世新格局 龔明鑫：台美經濟外交之集大成 - Yahoo股市</li>
-<li>賴清德：穩定匯率與利率約2％ 為中小微企業打造穩定經濟環境 - Yahoo股市</li>
-<li>網傳台灣液化天然氣沒半艘? 經濟部火大秀證據 - Yahoo股市</li>
-</ol>
-<h2>📌 三大媒體焦點交集 (真正重複報導的事件)</h2>
-<p>[焦點 1]：中東局勢擾動台股震盪 法人：AI 半導體基本面護體 逢低布局長線契機<br />
-[焦點 2]：油價擾動 法人:台股基本面未變<br />
-[焦點 3]：美伊戰事恐推升油價！主計長：油漲一成GDP增0.12百分點</p>
-<h2>📈 個股現況與大盤分析</h2>
-<p>數據：加權指數: 33342.51 (-57.81, -0.17%) 台積電: 1845.0 (-20.0, -1.07%) 鴻海: 216.5 (2.0, 0.93%)<br />
-評論：今日台股整體走勢受到中東局勢擾動及油價波動影響，大盤呈現震盪下跌。台積電表現稍微疲弱，需留意國際情勢對台灣科技股的影響。鴻海則有較為穩健的表現，顯示市場對其前景較為樂觀。投資人應密切關注國際局勢變化，並謹慎評估個股投資策略。</p>
-<p>【過濾守則】：剔除過期月份、國慶、封關等舊聞。數據與當前數據差距過大亦剔除。</p>
-        <hr>
-        <p style="text-align: center; color: #666; font-size: 0.8em;">數據來源：Google News, Yahoo Finance</p>
-        <script>
-            function startClock() {
-                setInterval(() => {
-                    const now = new Date();
-                    document.getElementById('live-clock').innerText = now.toLocaleString('zh-TW', {
-                        timeZone: 'Asia/Taipei', hour12: false
-                    });
-                }, 1000);
+    </header>
+
+    <!-- 股價區塊（明顯置頂，在評論之前） -->
+    <section class="stock-section">
+        <div class="section-label">即時行情</div>
+        <div class="stock-grid">
+            
+        <div class="stock-card down">
+            <div class="stock-name">加權指數</div>
+            <div class="stock-price">33,342.51</div>
+            <div class="stock-change">▼57.81 &nbsp; -0.17%</div>
+        </div>
+
+        <div class="stock-card down">
+            <div class="stock-name">台積電</div>
+            <div class="stock-price">1,845.00</div>
+            <div class="stock-change">▼20.0 &nbsp; -1.07%</div>
+        </div>
+
+        <div class="stock-card up">
+            <div class="stock-name">鴻海</div>
+            <div class="stock-price">216.50</div>
+            <div class="stock-change">▲2.0 &nbsp; +0.93%</div>
+        </div>
+
+        <div class="stock-card down">
+            <div class="stock-name">聯發科</div>
+            <div class="stock-price">1,710.00</div>
+            <div class="stock-change">▼10.0 &nbsp; -0.58%</div>
+        </div>
+
+        <div class="stock-card down">
+            <div class="stock-name">台達電</div>
+            <div class="stock-price">1,360.00</div>
+            <div class="stock-change">▼25.0 &nbsp; -1.81%</div>
+        </div>
+        </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- AI 分析內容（評論已被 prompt 要求排第一區段） -->
+    <div class="md-body">
+        <h2>📈 今日盤勢重點分析</h2>
+<p>今日台股加權指數收盤為 33342.51，下跌 57.81 點，跌幅為 0.17%。台積電收盤價為 1845.0，下跌 20.0 點，跌幅為 1.07%。鴻海收盤價為 216.5，上漲 2.0 點，漲幅為 0.93%。聯發科收盤價為 1710.0，下跌 10.0 點，跌幅為 0.58%。台達電收盤價為 1360.0，下跌 25.0 點，跌幅為 1.81%。</p>
+<h2>📰 財經綜合焦點（5 則）</h2>
+<ul>
+<li><a href="https://news.google.com/rss/articles/CBMiX0FVX3lxTE1sZ3lIUDRRUkhja1paakNCTFFoaGVYZVJIWnFweW1jSEpid0Ywa2djYy1YSE1FWWgycmk5NUo3eGFNNEhib2dSSm5PQkJWN2c5UHpIeXdULTVTQVVoWmZB0gFkQVVfeXFMT0xSVjhfVS14VVdRU3dLUGxDOWI1OTZfRXlVbEtoZExES2tkMXM4RUlTNkdmNTFSVHlfaUxSTko5dTBER24tWDc5NFRoQzFDczB5NG8tR0hPdWVDUU9TZGV5clJKTg?oc=5">台股抗跌！今年以來漲15.3％ 居全球第5強</a> — 自由財經</li>
+<li><a href="https://news.google.com/rss/articles/CBMi6wJBVV95cUxOT0NkcUc1Z0tpdW1oY1FKd2hoTVZDQUtSc3Y4ZUZlQ295TnhTanZtbGZXSm1zZkp5dWhndVVRbENlVGFTWHdac1ZqQXVsT2lweldySklxOWZiUWtIOUxNQTVOMzdvaWk5LU1MY2tvZmIwNmt4ZlRtSkNqV1dQdk5TUWxjRXFYOTNRQjVDM2d4YkU1bVN5Z1p5OG14b1ZDa2NYNXdYZHJBYnd5NVJqMkFpaEcydFczdmZORWMtcjAwajRuaDl6VGVmRjM3S3hfOXgtNi1BbFhYdEgwY3pSbDFCcmZEQWk5c01aOU0yVThwSE0xWXhjYXRnbzltX3ppRWd3X0d4Y18yVWl0eXYwcXRSQ01VSkFKdGlCVjFlb2NkY1hoQVFkNEhZZHpCRjBZUHJFbW5TX2JkU3JGRkRYT0UwbFZxaTdJODZ2dG4yRjRrc2FjbG1RWW5SaWpFaXc4d04tbGJZRUhRd3F5Wkk?oc=5">美伊戰事恐推升油價！主計長：油漲一成GDP增0.12百分點</a> — Yahoo股市</li>
+<li><a href="https://news.google.com/rss/articles/CBMiTkFVX3lxTFBCc3JOWHltcFNmbjRVbW9XVk15cWRocHdvTVA3X2ZQdWZpWklUcFhteFFfOVV2OGQ3NEdaNV9yaWY2eW5sRXFoVGxNWDR4QQ?oc=5">台灣打房政策不僅打垮房地產，還造成3大創傷？胡偉良解析「房市低潮」</a> — 遠見雜誌</li>
+<li><a href="https://news.google.com/rss/articles/CBMi5wJBVV95cUxQc3ZBbVZzRk05UmRDa2s1RTNBejJVZGhVaFR2cVVCUV81Nmk2WGFXaTd6ejVYMl9kWlo0Uzk1RFNPZmxwSkVuT2UtM29UeXd5NkROc2x0Z2JUQm9KM1JpeGdqTVZIVklPX2ZPNmV3SDV0bnNSUFZUMXpmR2NYeEhzd09uaFhSTWZKRDhMYVNrM3JYYlltRUtRWjdZWGhWU2pmUDNTWlItTEktMDRXNGx1Vmk0WmtSZHVrSXMwdG83LXZOQWNJUHBON2k4d1hKd0VKYW9kbHFIeXd6bWRGNUZYSG85UHF1V2EzREtySkE1eE83MXkzbnJzT202UFlEZFlyMGJFdVNmdEZ3UGpJN3ljY3Nabng2QjZkNF9TUmxaYzlCZHJIa1AxWjFkMHd0eFBtQW50aHFFNkQ5QXlPajUxTDV4OU9iUExxeE9WMkZOYk4zSVZXaGdwcURvaTNKdWNaR1dHSUF0Yw?oc=5">「狼群戰術」來襲？專家示警：恐成日本經濟安全保障隱憂</a> — Yahoo股市</li>
+<li><a href="https://news.google.com/rss/articles/CBMi2wJBVV95cUxNb2x2SjBfakxtODJmY0VzX3JxX28xcmlmbmpueXNVbDY1czJmd1JCSXktenJZNHNJZDdhdGNRVDRXX2w0bFdlRXhBS245eG92dmo3WHpXVS1mREkwOV9KbDN6ZjJHUkYtNGQ2WDYwMUNZY0tUUk9CWkJrSno3WXhzT3A2NlpuOUdpQ2RNTnh5UFYzeWZBM2p1VS1jdTJkTVFFZkNBUnJvZHFJdXhqZDNpRkxLREo2dnR5XzVncEJ5UGx5UUVoclVQRjBSOEk3MU5RUzlqVlZjSmZDQzRySnZaLWZidE5UUmJ3Z1dhdWZyRDdQVGV0TlRxcnR1c3VyV3ZZWFpTckctVEJ4bEZPd01sQ2lJdmZBSmdFeDRvUzctblU1a2tOM1RPYTZxcXl4cHpSek5pNkpPeFpUYUw1T1hyMWktOC1NaVZKa1lMaUEyZnlPaHh5MWlIXy1hcw?oc=5">原油飆漲、美股走跌 日經指數恐承壓 台股審慎應對</a> — Yahoo股市</li>
+</ul>
+<h2>📖 經濟/科技精選（5 則）</h2>
+<ul>
+<li><a href="https://news.google.com/rss/articles/CBMiWkFVX3lxTE1ndURZeUZteG9nbDlxLWkzQVg0VmdQbXNMZVJKRENFNlktbGlaTDZScnVSd0ZtQ1hZUnJWSFRFVi1WdlhyRk9ybHViOEZBNjlTTVpSejM2QmJhZ9IBX0FVX3lxTE5WZ0dnVDcxeHdtb1BYcjVtTGxTakJROU15REtJcFh1NklVSlViYWZMLW12MTdHTVBBN2NQZWxRUVZqNE9PWWFxM0wxbDBsb0dLdW9iYUxEYWxwR0ptXzM4?oc=5">趁多頭受挫 永豐金：拉回布局 AI 各產業龍頭股</a> — 經濟日報</li>
+<li><a href="https://news.google.com/rss/articles/CBMiWEFVX3lxTE1OajN5MklmOWJtdE5Nbl93ODJxajFKbjVSRS1tSjJxaWstTi1PeTd5U0NvMGw5SXM4U1hCMWV2LUtqXzdBbUhUaVd1TmFTeEtLTGRmRzdVYXY?oc=5">油價擾動不怕！台股維持偏多震盪 不改基本面主軸</a> — stock.ltn.com.tw</li>
+<li><a href="https://news.google.com/rss/articles/CBMiWkFVX3lxTE5TZkpSd2NrRzF3UVZZUkxfbmVmQmpzUTF5U1ZGSXhUYU03OW8tSTExcmxjeXIzdmd2RDh0YnVGUEpsLVpmVDQ0WmNONXVuQVB0TXRoM1V0VkYtQdIBX0FVX3lxTFBQQUlHZFo5NlpKdHNaQUdHSG0xZVlHY19PVEY4ZU9HZzhPcjlzMGxaRFJ1Yk9SM3VrRjg2YmRKTHJnYXQ3MHlsblpsdnJZdVp2MnVxelllTjJmcW01c3BB?oc=5">台灣科技、市值型 夯</a> — 經濟日報</li>
+<li><a href="https://news.google.com/rss/articles/CBMiTkFVX3lxTE1mOWtoSC1ZdS1ORkxoMFA1VjdVNU5XQmZnS1lmQzE0LU5GWjNVak1UV21YVWlYZDQ3X1BDejNxdUE5WnREWDRrR0M4YWpuUQ?oc=5">中東戰火與Fed利率牽動市場！企業獲利能否支撐股市？</a> — 風傳媒</li>
+<li><a href="https://news.google.com/rss/articles/CBMiUEFVX3lxTE5qd1dyM3hzM1RSaXVxeUQ3WjZrQzBVNG9KbFVxeHdENWJSMFU4c2hZTVhQVzhEMnp6RURoSEF5TmRmcGM1Q2h5dXpDQ2pOWlA00gFWQVVfeXFMT0xSVjhfVS14VVdRU3dLUGxDOWI1OTZfRXlVbEtoZExES2tkMXM4RUlTNkdmNTFSVHlfaUxSTko5dTBER24tWDc5NFRoQzFDczB5NG8tR0hPdWVDUU9TZGV5clJKTg?oc=5">中東局勢擾動台股震盪 法人：AI 半導體基本面護體 逢低布局長線契機</a> — 聯合新聞網</li>
+</ul>
+<h2>🌐 市場熱門話題（5 則）</h2>
+<ul>
+<li><a href="https://news.google.com/rss/articles/CBMifkFVX3lxTE8zdnptUUoyV0dNS2Q3aUcwT3hDWmdmRUtPZG4zZEczTVJGWUtFeDdTNlFGQ0lUbjlmWlRsSFZBM08wODYyM0hUejFLNmVtQXVvRkZ3TlFDYXhpRTFSNVhYYWlLOGx4SllKUEN2TGpTYnRfWWxwRm9DV24yZGpzZw?oc=5">【台股2月營收表現速覽】營收創高、成長、衰退股清單</a> — CMoney投資網誌</li>
+<li><a href="https://news.google.com/rss/articles/CBMi5wJBVV95cUxQc3ZBbVZzRk05UmRDa2s1RTNBejJVZGhVaFR2cVVCUV81Nmk2WGFXaTd6ejVYMl9kWlo0Uzk1RFNPZmxwSkVuT2UtM29UeXd5NkROc2x0Z2JUQm9KM1JpeGdqTVZIVklPX2ZPNmV3SDV0bnNSUFZUMXpmR2NYeEhzd09uaFhSTWZKRDhMYVNrM3JYYlltRUtRWjdZWGhWU2pmUDNTWlItTEktMDRXNGx1Vmk0WmtSZHVrSXMwdG83LXZOQWNJUHBON2k4d1hKd0VKYW9kbHFIeXd6bWRGNUZYSG85UHF1V2EzREtySkE1eE83MXkzbnJzT202UFlEZFlyMGJFdVNmdEZ3UGpJN3ljY3Nabng2QjZkNF9TUmxaYzlCZHJIa1AxWjFkMHd0eFBtQW50aHFFNkQ5QXlPajUxTDV4OU9iUExxeE9WMkZOYk4zSVZXaGdwcURvaTNKdWNaR1dHSUF0Yw?oc=5">「狼群戰術」來襲？專家示警：恐成日本經濟安全保障隱憂</a> — Yahoo股市</li>
+<li>[【台股開盤】電子權值股走弱大盤高檔震盪 記憶體、塑化力挺拚站回月線](https://news.google.com/rss/articles/CBMiuwNBVV95cUxNbkwxV2t2TWhCQW5tTk9zU1FLaXM4ajVOQ2stbllnZnlMVW0tSmI4SGhmWWh4NE1kWWZGclZpXzdZdmJYb3M5cTlPLVk3T1hmRVhROHpPTGgwcUg1RWVBaWE5UUloT0FBbGM2SlhvaldOQ1h1bGxmQWxwOU5TcWxIaDB2RnU5MVRfZUQzVF9Gc0xTVkJqR2Nqd0IxYzZWekVoLTJpdjQzUjhmcUJRUnBrOHNRTm5hUkM0aHN5X3U4LWloNmsxQ2Q3b0IxSFAxNUNGT0N5N1VmZDYzMlFBOGJ3cTJMSWhVN1o3WS1QOVRFaWZBZ1ZtV1Nnbmg0X2xKWTVOMVdFVlB4dFZORnJ1cEptVHJaUWtvQ3NGSWt3em1DR2lIRDl5alo0VU5MelQtRlVLcXpwOUFLaGxySTNjQ1UyZ2JTWkUyVC1</li>
+</ul>
+    </div>
+
+    <footer class="site-footer">
+        數據來源：Google News RSS &bull; Yahoo Finance &bull; OpenAI GPT-3.5
+    </footer>
+</div>
+
+<script>
+    (function () {
+        function tick() {
+            const el = document.getElementById('live-clock');
+            if (el) {
+                el.textContent = new Date().toLocaleString('zh-TW', {
+                    timeZone: 'Asia/Taipei',
+                    hour12: false,
+                });
             }
-            startClock();
-        </script>
-    </body>
-    </html>
-    
+        }
+        tick();
+        setInterval(tick, 1000);
+    })();
+</script>
+</body>
+</html>
