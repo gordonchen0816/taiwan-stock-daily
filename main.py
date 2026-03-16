@@ -105,7 +105,7 @@ try:
     stock_summary, structured_stocks = get_stock_data()
     stock_cards_html = build_stock_html(structured_stocks)
 
-    # ── Prompt：要求先輸出評論，再列新聞，連結必須用索引號對應 ──────────────
+    # ── Prompt：要求先輸出評論，再列新聞，連結必須用索引號對應 ───────────────
     prompt = f"""
     任務：你是台灣頂級財經主編，文風專業犀利、觀點精準，請依照以下格式輸出，語言：繁體中文。
 
@@ -141,6 +141,7 @@ try:
     4. 每則新聞標題保持原文，不得改寫。
     5. 新聞格式必須為 [標題](連結) - 來源，每個新聞僅能有一個連結，嚴禁重複輸出網址。
     6. 輸出前自我檢查：每個 [ 必須有對應的 ]，每個 ( 必須有對應的 )，不得出現任何未閉合括號。
+    7. 嚴禁輸出任何包含 google.com 或 google.com/rss 字眼的網址，所有連結必須來自新聞池。
     """
 
     response = client.chat.completions.create(
