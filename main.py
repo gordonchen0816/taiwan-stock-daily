@@ -2,204 +2,133 @@ import os
 import yfinance as yf
 from openai import OpenAI
 import requests
+import random
 import traceback
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 import markdown
 
-# 1. 配置 OpenAI Client (使用效能價格比最高的 GPT-4o-mini)
+# 1. 配置 OpenAI Client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def get_news_pool(limit=50):
-    """抓取鉅亨網與財經M平方 RSS，排除 Google News 亂碼"""
-    sources = [
-        {"name": "鉅亨網", "url": "https://news.cnyes.com/rss/tw_stock"},
-        {"name": "財經M平方", "url": "https://www.macromicro.me/blog/rss"}
-    ]
-    headers = {"User-Agent": "Mozilla/5.0"}
+def get_news_pool(limit=45):
+    # 鎖定 24 小時內新聞，確保內容新鮮
+    url = f"https://news.google.com/rss/search?q=股市+經濟+台灣+台股+when:1d&hl=zh-TW&gl=TW&ceid=TW:zh-Hant&t={random.random()}"
+    headers = {'User-Agent': 'Mozilla/5.0'}
     pool = []
-
-    for src in sources:
-        try:
-            response = requests.get(src["url"], headers=headers, timeout=15)
-            soup = BeautifulSoup(response.content, features="xml")
-            items = soup.find_all("item", limit=25)
-            for item in items:
-                title = item.title.text.strip()
-                # 關鍵：切割掉所有追蹤參數，保持連結乾淨
-                link = item.link.text.split('?')[0].replace('\n', '').strip()
-                pool.append({
-                    "title": title, 
-                    "link": link, 
-                    "source": src["name"]
-                })
-        except Exception as e:
-            print(f"抓取 {src['name']} 失敗: {e}")
-            continue
-            
-    return pool[:limit]
-
-def format_pool_for_prompt(pool):
-    """將新聞池轉成 AI 易於引用的格式"""
-    lines = []
-    for i, item in enumerate(pool, 1):
-        lines.append(f"新聞編號 {i} | 來源: {item['source']} | 標題: {item['title']} | 連結: {item['link']}")
-    return "\n".join(lines)
+    try:
+        response = requests.get(url, headers=headers, timeout=15)
+        soup = BeautifulSoup(response.content, features="xml")
+        items = soup.find_all('item', limit=limit)
+        for item in items:
+            pool.append(item.title.text)
+        return pool
+    except:
+        return ["無法取得即時新聞池"]
 
 def get_stock_data():
-    """下載台股權值股即時行情"""
-    tickers = {
-        "加權指數": "^TWII",
-        "台積電": "2330.TW",
-        "鴻海": "2317.TW",
-        "聯發科": "2454.TW",
-        "台達電": "2308.TW",
-    }
-    summary_parts = []
-    structured = []
-
-    for name, code in tickers.items():
+    tks = {"加權指數": "^TWII", "台積電": "2330.TW", "鴻海": "2317.TW"}
+    res_list = []
+    for name, code in tks.items():
         try:
             d = yf.download(code, period="5d", interval="1d", progress=False)
             if not d.empty:
-                curr = round(float(d["Close"].iloc[-1].item()), 2)
-                prev = round(float(d["Close"].iloc[-2].item()), 2)
+                curr = round(float(d['Close'].iloc[-1].item()), 2)
+                prev = round(float(d['Close'].iloc[-2].item()), 2)
                 diff = round(curr - prev, 2)
                 pct = round((diff / prev) * 100, 2)
-                sign = "▲" if diff >= 0 else "▼"
-                color = "up" if diff >= 0 else "down"
-                summary_parts.append(f"{name}: {curr} ({sign}{abs(diff)}, {pct}%)")
-                structured.append({
-                    "name": name, "price": curr, "diff": diff,
-                    "pct": pct, "sign": sign, "color": color,
-                })
-        except Exception:
-            summary_parts.append(f"{name}: 失敗")
+                res_list.append(f"{name}: {curr} ({diff}, {pct}%)")
+        except:
+            res_list.append(f"{name}: 獲取失敗")
+    return " ".join(res_list)
 
-    return " &nbsp; ".join(summary_parts), structured
-
-def build_stock_html(structured):
-    """生成股價報價卡片 HTML"""
-    cards = []
-    for s in structured:
-        diff_str = f"{s['sign']}{abs(s['diff'])}"
-        pct_str = f"{s['pct']:+.2f}%"
-        cards.append(f"""
-        <div class="stock-card {s['color']}">
-            <div class="stock-name">{s['name']}</div>
-            <div class="stock-price">{s['price']:,.2f}</div>
-            <div class="stock-change">{diff_str} &nbsp; {pct_str}</div>
-        </div>""")
-    return "\n".join(cards)
-
-# ── 主流程 ──
 try:
-    print("--- 啟動 AI 財經主編 (連結強化版) ---")
+    print("--- 啟動 AI 財經主編 (彙整報告模式) ---")
     tw_now = datetime.utcnow() + timedelta(hours=8)
-    time_str = tw_now.strftime("%Y-%m-%d %H:%M:%S")
-
+    time_str = tw_now.strftime('%Y-%m-%d %H:%M:%S')
+    
     news_pool = get_news_pool(50)
-    pool_text = format_pool_for_prompt(news_pool)
-    stock_summary, structured_stocks = get_stock_data()
-    stock_cards_html = build_stock_html(structured_stocks)
-
-    # 強化 Prompt：嚴禁捏造連結，必須原樣提取
+    stocks = get_stock_data()
+    
+    # 重新設計 Prompt，模仿用戶提供的加密貨幣報告格式
     prompt = f"""
-    任務：你是台灣頂級財經主編，請撰寫今日報告。語言：繁體中文。
+    任務：將台灣財經資訊轉化為一份「每日彙整報告」。
+    語言：必須全部使用「繁體中文」。
+    新聞池：{news_pool}
+    今日股市數據：{stocks}
+    
+    請嚴格依照以下格式輸出 Markdown：
 
-    【重要：新聞池資料】
-    {pool_text}
+    # 📈 台股每日彙整報告
 
-    【今日股市行情】
-    {stock_summary}
+    ## 📰 今日重點摘要
+    (請從新聞池中歸納出 5 個最重要的台股、經濟事件，並加上簡短分析，格式如：1. **關鍵字**：描述)
 
-    ── 輸出規範 ──
-    1. 必須嚴格按照以下 Markdown 格式輸出。
-    2. 連結規則：每一則新聞的連結，必須從【新聞池】中『精確複製』對應編號的連結。
-    3. 嚴禁使用 example.com 或捏造任何虛擬網址。
-    4. 盤勢分析請結合『財經M平方』的觀點與即時行情。
+    ## 📊 市場概況
+    (結合今日股市數據 {stocks}，描述整體市場氛圍。例如大盤漲跌、權值股表現，以及新聞中提到的市場信心度)
 
-    ## 📈 今日盤勢重點分析
-    (請撰寫約 150 字內的深度評論)
+    ## 🔍 技術分析解讀
+    (針對數據 {stocks} 提供解讀。雖然只有開收盤價，但請根據漲跌幅與新聞趨勢，判斷目前是多頭、空頭還是盤整，並說明支撐與壓力點位觀察)
 
-    ## 📰 財經綜合焦點（5 則）
-    - [新聞標題](連結) — 來源
+    ## 😱 市場情緒
+    (根據新聞池內容，綜合判斷當前台灣投資人的情緒。是極度恐懼、謹慎、還是樂觀？請說明原因)
 
-    ## 📖 總經與科技精選（5 則）
-    - [新聞標題](連結) — 來源
+    ## ⚠️ 風險提醒
+    (從新聞中找出未來 24-48 小時內潛在的利空因素或不確定性，如國際戰火、通膨數據、財報公佈等)
 
-    ## 🌐 市場熱門話題（5 則）
-    - [新聞標題](連結) — 來源
+    ## 🎯 今日觀察重點
+    (列出 3 個今日收盤後或明日開盤最值得關注的動向，如特定法說會、美股表現、或是重要政策討論)
 
-    ## 📌 三大市場焦點交集
-    **焦點 1**：...
-    **焦點 2**：...
-    **焦點 3**：...
+    【過濾守則】：
+    - 嚴格剔除日期不符的舊聞（如去年、上個月、國慶、封關）。
+    - 若數據與新聞明顯矛盾，以真實數據 {stocks} 為準並剔除錯誤新聞。
     """
-
+    
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "你是一位嚴謹的財經主編。你的原則是：標題與連結必須完全對應新聞池提供的資料，不准改寫連結。"},
-            {"role": "user", "content": prompt},
+            {"role": "system", "content": "你是一位專業的台灣財經分析專家，擅長將雜亂新聞歸納為高品質彙整報告。"},
+            {"role": "user", "content": prompt}
         ],
-        temperature=0.1,  # 降低隨機性，確保連結準確度
-        max_tokens=3000
+        temperature=0.3
     )
-
+    
     md_text = response.choices[0].message.content
-    html_body = markdown.markdown(md_text, extensions=["tables", "fenced_code", "nl2br"])
+    html_body = markdown.markdown(md_text, extensions=['tables', 'fenced_code', 'nl2br'])
 
-    full_html = f"""<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>台股 AI 總經情報站</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
-    <style>
-        :root {{
-            --bg: #0d1117; --surface: #161b22; --border: #30363d;
-            --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
-            --up: #3fb950; --down: #f85149;
-        }}
-        body {{ background: var(--bg); color: var(--text); font-family: "Noto Sans TC", sans-serif; padding: 20px; line-height: 1.6; }}
-        .wrapper {{ max-width: 850px; margin: 0 auto; }}
-        header {{ border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 25px; }}
-        .site-title {{ color: var(--accent); font-size: 1.5rem; font-weight: 700; }}
-        .stock-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 30px; }}
-        .stock-card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; transition: 0.2s; }}
-        .stock-card:hover {{ transform: translateY(-2px); border-color: var(--accent); }}
-        .stock-card.up {{ border-top: 4px solid var(--up); }}
-        .stock-card.down {{ border-top: 4px solid var(--down); }}
-        .stock-price {{ font-family: 'JetBrains Mono'; font-size: 1.2rem; font-weight: 600; margin: 5px 0; }}
-        .md-body a {{ color: var(--accent); text-decoration: none; word-break: break-all; font-weight: 500; }}
-        .md-body a:hover {{ text-decoration: underline; }}
-        .md-body ul {{ list-style: none; padding: 0; }}
-        .md-body ul li {{ margin-bottom: 12px; border-bottom: 1px solid #21262d; padding-bottom: 8px; }}
-        footer {{ text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 50px; border-top: 1px solid var(--border); padding-top: 20px; }}
-    </style>
-</head>
-<body>
-<div class="wrapper">
-    <header>
-        <div class="site-title">📊 台股 AI 總經情報站</div>
-        <div style="font-size: 0.8rem; color: var(--muted);">更新時間：{time_str} (台北)</div>
-    </header>
-
-    <div class="stock-grid">{stock_cards_html}</div>
-    <div class="md-body">{html_body}</div>
-
-    <footer>
-        數據來源：鉅亨網 &bull; 財經M平方 &bull; OpenAI GPT-4o-mini
-    </footer>
-</div>
-</body>
-</html>"""
+    full_html = f"""
+    <!DOCTYPE html>
+    <html lang="zh-TW">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>台股每日彙整報告</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+        <style>
+            .markdown-body {{ box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; }}
+            @media (max-width: 767px) {{ .markdown-body {{ padding: 15px; }} }}
+            .info-banner {{ background-color: #f8f9fa; border-left: 5px solid #007bff; padding: 15px; margin-bottom: 30px; font-size: 0.9em; }}
+            h1, h2 {{ border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }}
+            strong {{ color: #d73a49; }}
+        </style>
+    </head>
+    <body class="markdown-body">
+        <div class="info-banner">
+            <p>最後更新時間：{time_str} (台北時間)</p>
+            <p>數據來源：Google News, Yahoo Finance</p>
+        </div>
+        {html_body}
+        <hr>
+        <script>
+            // 由於彙整報告較長，不建議在正文放動態時鐘干擾閱讀，維持 banner 靜態更新即可
+        </script>
+    </body>
+    </html>
+    """
 
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(full_html)
-    print("--- 網頁生成完成 ---")
+    print(f"--- 網頁更新完成 (彙整報告模式) ---")
 
-except Exception:
-    print(traceback.format_exc())
+except Exception as e:
+    print(f"失敗: {traceback.format_exc()}")
