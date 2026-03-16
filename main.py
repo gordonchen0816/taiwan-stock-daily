@@ -12,25 +12,34 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 def get_news_pool(limit=50):
-    """抓取鉅亨網台股 RSS，回傳結構化清單 (含標題與連結分離)"""
-    url = "https://news.cnyes.com/rss/tw_stock"
+    """抓取鉅亨網台股 RSS + 財經M平方總經觀點，回傳合併清單"""
     headers = {"User-Agent": "Mozilla/5.0"}
     pool = []
+
+    # ── 水源一：鉅亨網台股即時新聞 ──────────────────────────────────────────
     try:
-        response = requests.get(url, headers=headers, timeout=15)
-        soup = BeautifulSoup(response.content, features="xml")
-        items = soup.find_all("item", limit=limit)
-        for item in items:
-            title = item.title.text.strip()
-            link  = item.link.text.strip()
-            # 嘗試解析來源
-            source = ""
-            if item.source:
-                source = item.source.text.strip()
+        resp = requests.get("https://news.cnyes.com/rss/tw_stock", headers=headers, timeout=15)
+        soup = BeautifulSoup(resp.content, features="xml")
+        for item in soup.find_all("item", limit=limit):
+            title  = item.title.text.strip()
+            link   = item.link.text.strip()
+            source = item.source.text.strip() if item.source else "鉅亨網"
             pool.append({"title": title, "link": link, "source": source})
-        return pool
     except Exception:
-        return [{"title": "無法取得即時新聞", "link": "#", "source": ""}]
+        pool.append({"title": "鉅亨網新聞暫時無法取得", "link": "#", "source": "鉅亨網"})
+
+    # ── 水源二：財經M平方 總經深度觀點（取最新 8 則）────────────────────────
+    try:
+        resp = requests.get("https://www.macromicro.me/blog/rss", headers=headers, timeout=15)
+        soup = BeautifulSoup(resp.content, features="xml")
+        for item in soup.find_all("item", limit=8):
+            title = "[總經觀點] " + item.title.text.strip()
+            link  = item.link.text.strip() if item.link else (item.find("link").get_text(strip=True) if item.find("link") else "#")
+            pool.append({"title": title, "link": link, "source": "財經M平方"})
+    except Exception:
+        pass  # 副水源失敗不影響主流程
+
+    return pool if pool else [{"title": "無法取得即時新聞", "link": "#", "source": ""}]
 
 
 def format_pool_for_prompt(pool):
@@ -108,6 +117,9 @@ try:
     # ── Prompt：要求先輸出評論，再列新聞，連結必須用索引號對應 ───────────────
     prompt = f"""
     任務：你是台灣頂級財經主編，文風專業犀利、觀點精準，請依照以下格式輸出，語言：繁體中文。
+    現在你擁有了即時新聞與專業總經觀點（標題含 [總經觀點] 前綴者來自財經M平方）。
+    請在撰寫分析時，嘗試結合總經趨勢（如美債、匯率或全球經濟）與台股盤勢，提升分析深度。
+
 
     【新聞池（請根據索引號引用連結）】
     {pool_text}
