@@ -27,7 +27,14 @@ def get_news_pool(limit=45):
         return ["無法取得即時新聞池"]
 
 def get_stock_data():
-    tks = {"加權指數": "^TWII", "台積電": "2330.TW", "鴻海": "2317.TW"}
+    # --- 在此調整個股排列順序 ---
+    # 按照你想顯示的優先順序排列即可
+    tks = {
+        "加權指數": "^TWII", 
+        "台積電": "2330.TW", 
+        "鴻海": "2317.TW"
+    }
+    # --------------------------
     res_list = []
     for name, code in tks.items():
         try:
@@ -37,21 +44,21 @@ def get_stock_data():
                 prev = round(float(d['Close'].iloc[-2].item()), 2)
                 diff = round(curr - prev, 2)
                 pct = round((diff / prev) * 100, 2)
-                # 修正為精簡格式：名稱: 點數 (漲跌, 幅度%)
+                # 數據精簡格式：名稱: 點數 (漲跌, 幅度%)
                 res_list.append(f"{name}: {curr} ({diff}, {pct}%)")
         except:
             res_list.append(f"{name}: 獲取失敗")
     return " ".join(res_list)
 
 try:
-    print("--- 啟動 AI 財經主編 (格式優化版) ---")
+    print("--- 啟動 AI 財經主編 (最終定錨版) ---")
     tw_now = datetime.utcnow() + timedelta(hours=8)
     time_str = tw_now.strftime('%Y-%m-%d %H:%M:%S')
     
     news_pool = get_news_pool(50)
     stocks = get_stock_data()
     
-    # 強化 Prompt：要求強制換行與繁體
+    # 強化 Prompt：確保格式、繁體、分行
     prompt = f"""
     任務：專業財經主編分類比對。
     要求：全篇使用「繁體中文」。
@@ -80,7 +87,7 @@ try:
     數據：{stocks}
     評論：(針對今日數據與國際局勢進行專業評論，100字內)
 
-    【過濾守則】：剔除過期月份、國慶、封關等舊聞。數據落差過大亦剔除。
+    【過濾守則】：剔除過期月份、國慶、封關等舊聞。數據與當前數據差距過大亦剔除。
     """
     
     response = client.chat.completions.create(
@@ -93,7 +100,7 @@ try:
     )
     
     md_text = response.choices[0].message.content
-    # 確保 HTML 轉換時能正確處理換行
+    # nl2br 擴充功能確保 [焦點] 能夠正確換行
     html_body = markdown.markdown(md_text, extensions=['tables', 'fenced_code', 'nl2br'])
 
     full_html = f"""
@@ -138,7 +145,7 @@ try:
 
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(full_html)
-    print(f"--- 網頁更新完成 (格式修正版) ---")
+    print(f"--- 網頁更新完成 (最終定錨版) ---")
 
 except Exception as e:
     print(f"失敗: {traceback.format_exc()}")
