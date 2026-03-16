@@ -16,12 +16,16 @@ def get_news_pool(limit=50):
     headers = {"User-Agent": "Mozilla/5.0"}
     pool = []
 
+    BLOCKED = {"港股", "廣告", "贊助"}
+
     # ── 水源一：鉅亨網台股即時新聞 ──────────────────────────────────────────
     try:
         resp = requests.get("https://news.cnyes.com/rss/tw_stock", headers=headers, timeout=15)
         soup = BeautifulSoup(resp.content, features="xml")
         for item in soup.find_all("item", limit=limit):
             title  = item.title.text.strip()
+            if any(kw in title for kw in BLOCKED):
+                continue
             link   = item.link.text.strip().split('?')[0]
             source = item.source.text.strip() if item.source else "鉅亨網"
             pool.append({"title": title, "link": link, "source": source})
@@ -34,8 +38,10 @@ def get_news_pool(limit=50):
         soup = BeautifulSoup(resp.content, features="xml")
         for item in soup.find_all("item", limit=8):
             title = "[總經觀點] " + item.title.text.strip()
-            raw   = item.link.text.strip() if item.link else (item.find("link").get_text(strip=True) if item.find("link") else "#")
-            link  = raw.split('?')[0]
+            if any(kw in title for kw in BLOCKED):
+                continue
+            raw  = item.link.text.strip() if item.link else (item.find("link").get_text(strip=True) if item.find("link") else "#")
+            link = raw.split('?')[0]
             pool.append({"title": title, "link": link, "source": "財經M平方"})
     except Exception:
         pass  # 副水源失敗不影響主流程
@@ -44,11 +50,11 @@ def get_news_pool(limit=50):
 
 
 def format_pool_for_prompt(pool):
-    """將新聞池轉成 prompt 用的文字，索引號方便 AI 引用"""
+    """將新聞池轉成 prompt 用的文字（只給標題與來源，不暴露網址給 AI）"""
     lines = []
     for i, item in enumerate(pool, 1):
         src = f" ({item['source']})" if item["source"] else ""
-        lines.append(f"[{i}] 標題: {item['title']}{src} | 連結: {item['link']}")
+        lines.append(f"[{i}] {item['title']}{src}")
     return "\n".join(lines)
 
 
@@ -115,14 +121,16 @@ try:
     stock_summary, structured_stocks = get_stock_data()
     stock_cards_html = build_stock_html(structured_stocks)
 
-    # ── Prompt：要求先輸出評論，再列新聞，連結必須用索引號對應 ───────────────
+    # ── 建立佔位符對照表，AI 只見編號，Python 事後填入真實 URL ─────────────
+    link_map = {f"LINK_{i}": item["link"] for i, item in enumerate(news_pool, 1)}
+
+    # ── Prompt：給 AI 編號與標題，要求輸出 LINK_N 佔位符 ────────────────────
     prompt = f"""
     任務：你是台灣頂級財經主編，文風專業犀利、觀點精準，請依照以下格式輸出，語言：繁體中文。
     現在你擁有了即時新聞與專業總經觀點（標題含 [總經觀點] 前綴者來自財經M平方）。
     請在撰寫分析時，嘗試結合總經趨勢（如美債、匯率或全球經濟）與台股盤勢，提升分析深度。
 
-
-    【新聞池（請根據索引號引用連結）】
+    【新聞池（只有編號與標題，無網址）】
     {pool_text}
 
     【今日股市數據摘要】
@@ -134,13 +142,13 @@ try:
     （針對今日數據與市場局勢進行 120 字內的專業評論，必須放在所有新聞列表之前）
 
     ## 📰 財經綜合焦點（5 則）
-    （格式：- [新聞標題](對應連結) — 來源）
+    （格式：- [新聞標題](LINK_N) — 來源）
 
     ## 📖 經濟/科技精選（5 則）
-    （格式：- [新聞標題](對應連結) — 來源）
+    （格式：- [新聞標題](LINK_N) — 來源）
 
     ## 🌐 市場熱門話題（5 則）
-    （格式：- [新聞標題](對應連結) — 來源）
+    （格式：- [新聞標題](LINK_N) — 來源）
 
     ## 📌 三大市場焦點交集
     **焦點 1**：描述（30 字內）
@@ -148,13 +156,12 @@ try:
     **焦點 3**：描述（30 字內）
 
     【規則】
-    1. 連結必須從新聞池索引號取得，格式：[標題](連結)，不得捏造連結。
+    1. 連結佔位符格式為 LINK_N，N 為新聞池的編號（如第 3 則用 LINK_3），禁止自行捏造任何網址。
     2. 評論區段（盤勢重點分析）必須是輸出的第一個區段。
     3. 剔除封關、過期超過 24 小時之舊聞。
     4. 每則新聞標題保持原文，不得改寫。
-    5. 新聞格式必須為 [標題](連結) - 來源，每個新聞僅能有一個連結，嚴禁重複輸出網址。
+    5. 每則新聞僅能使用一個 LINK_N，嚴禁重複或輸出任何真實網址。
     6. 輸出前自我檢查：每個 [ 必須有對應的 ]，每個 ( 必須有對應的 )，不得出現任何未閉合括號。
-    7. 嚴禁輸出任何以 google.com 開頭的連結，包含但不限於 https://www.google.com/url?sa=E&source=gmail&q= 等重定向格式，違者視為輸出無效。所有連結必須直接來自新聞池原始網址。
     """
 
     response = client.chat.completions.create(
@@ -174,7 +181,12 @@ try:
         temperature=0.3,
     )
 
-    md_text   = response.choices[0].message.content
+    md_text = response.choices[0].message.content
+
+    # ── Python 負責填網址：將 LINK_N 佔位符替換為真實 URL ────────────────────
+    for placeholder, real_url in link_map.items():
+        md_text = md_text.replace(placeholder, real_url)
+
     html_body = markdown.markdown(
         md_text, extensions=["tables", "fenced_code", "nl2br"]
     )
