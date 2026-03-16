@@ -28,6 +28,8 @@ def get_news_pool(limit=50):
         for item in items:
             title = item.title.text.strip()
             link  = item.link.text.replace('\n', '').strip()
+            if '&' in link:
+                link = link[:link.index('&')]
             # 嘗試解析來源
             source = ""
             if item.source:
@@ -144,11 +146,11 @@ try:
     2. 評論區段（盤勢重點分析）必須是輸出的第一個區段。
     3. 剔除封關、過期超過 24 小時之舊聞。
     4. 每則新聞標題保持原文，不得改寫。
-    5. Markdown 連結格式必須完整閉合，確保每個 [ ] 都有對應的 ( )，不得出現未閉合的括號。
+    5. 新聞格式必須為 [標題](連結) - 來源，每個新聞僅能有一個連結，嚴禁重複輸出網址，且必須完整閉合 Markdown 括號。
     """
 
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
         messages=[
             {
                 "role": "system",
