@@ -16,7 +16,7 @@ def get_news_pool(limit=50):
     """抓取 Google News RSS，回傳結構化清單 (含標題與連結分離)"""
     url = (
         f"https://news.google.com/rss/search?"
-        f"q=股市+經濟+台灣+台股+when:1d"
+        f"q=股市+今日+台股+盤勢分析+when:1d"
         f"&hl=zh-TW&gl=TW&ceid=TW:zh-Hant&t={random.random()}"
     )
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -27,7 +27,7 @@ def get_news_pool(limit=50):
         items = soup.find_all("item", limit=limit)
         for item in items:
             title = item.title.text.strip()
-            link  = item.link.text.strip()
+            link  = item.link.text.replace('\n', '').strip()
             # 嘗試解析來源
             source = ""
             if item.source:
@@ -144,6 +144,7 @@ try:
     2. 評論區段（盤勢重點分析）必須是輸出的第一個區段。
     3. 剔除封關、過期超過 24 小時之舊聞。
     4. 每則新聞標題保持原文，不得改寫。
+    5. 每個 Markdown 超連結必須完整閉合，格式嚴格為 [標題](連結)，方括號 [ ] 與圓括號 ( ) 必須完整成對，不得省略任何括號。
     """
 
     response = client.chat.completions.create(
