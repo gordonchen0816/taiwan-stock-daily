@@ -2,7 +2,6 @@ import os
 import yfinance as yf
 from openai import OpenAI
 import requests
-import random
 import traceback
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
@@ -13,25 +12,17 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 def get_news_pool(limit=50):
-    """抓取 Google News RSS，回傳結構化清單 (含標題與連結分離)"""
-    url = (
-        f"https://news.google.com/rss/search?"
-        f"q=股市+今日+台股+盤勢分析+when:1d"
-        f"&hl=zh-TW&gl=TW&ceid=TW:zh-Hant&t={random.random()}"
-    )
+    """抓取鉅亨網台股 RSS，回傳結構化清單 (含標題與連結分離)"""
+    url = "https://news.cnyes.com/rss/tw_stock"
     headers = {"User-Agent": "Mozilla/5.0"}
     pool = []
-    seen_links = set()
     try:
         response = requests.get(url, headers=headers, timeout=15)
         soup = BeautifulSoup(response.content, features="xml")
         items = soup.find_all("item", limit=limit)
         for item in items:
             title = item.title.text.strip()
-            link  = item.link.text.replace('\n', '').strip().split('&')[0]
-            if link in seen_links:
-                continue
-            seen_links.add(link)
+            link  = item.link.text.strip()
             # 嘗試解析來源
             source = ""
             if item.source:
@@ -154,7 +145,7 @@ try:
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
-        max_tokens=2000,
+        max_tokens=3000,
         messages=[
             {
                 "role": "system",
