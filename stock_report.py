@@ -22,7 +22,7 @@ def get_news_pool(limit=50):
         soup = BeautifulSoup(resp.content, features="xml")
         for item in soup.find_all("item", limit=limit):
             title  = item.title.text.strip()
-            link   = item.link.text.strip()
+            link   = item.link.text.strip().split('?')[0]
             source = item.source.text.strip() if item.source else "鉅亨網"
             pool.append({"title": title, "link": link, "source": source})
     except Exception:
@@ -34,7 +34,8 @@ def get_news_pool(limit=50):
         soup = BeautifulSoup(resp.content, features="xml")
         for item in soup.find_all("item", limit=8):
             title = "[總經觀點] " + item.title.text.strip()
-            link  = item.link.text.strip() if item.link else (item.find("link").get_text(strip=True) if item.find("link") else "#")
+            raw   = item.link.text.strip() if item.link else (item.find("link").get_text(strip=True) if item.find("link") else "#")
+            link  = raw.split('?')[0]
             pool.append({"title": title, "link": link, "source": "財經M平方"})
     except Exception:
         pass  # 副水源失敗不影響主流程
@@ -153,7 +154,7 @@ try:
     4. 每則新聞標題保持原文，不得改寫。
     5. 新聞格式必須為 [標題](連結) - 來源，每個新聞僅能有一個連結，嚴禁重複輸出網址。
     6. 輸出前自我檢查：每個 [ 必須有對應的 ]，每個 ( 必須有對應的 )，不得出現任何未閉合括號。
-    7. 嚴禁輸出任何包含 google.com 或 google.com/rss 字眼的網址，所有連結必須來自新聞池。
+    7. 嚴禁輸出任何以 google.com 開頭的連結，包含但不限於 https://www.google.com/url?sa=E&source=gmail&q= 等重定向格式，違者視為輸出無效。所有連結必須直接來自新聞池原始網址。
     """
 
     response = client.chat.completions.create(

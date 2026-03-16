@@ -31,7 +31,7 @@ jobs:
       - name: Run Script
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python main.py
+        run: python stock_report.py
 
       - name: Commit and Push
         run: |
