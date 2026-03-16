@@ -11,141 +11,379 @@ import markdown
 # 1. 配置 OpenAI Client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def get_news_pool(limit=45):
-    # 加上 when:1d 確保抓取 24 小時內新聞
-    url = f"https://news.google.com/rss/search?q=股市+經濟+台灣+台股+when:1d&hl=zh-TW&gl=TW&ceid=TW:zh-Hant&t={random.random()}"
-    headers = {'User-Agent': 'Mozilla/5.0'}
+
+def get_news_pool(limit=50):
+    """抓取 Google News RSS，回傳結構化清單 (含標題與連結分離)"""
+    url = (
+        f"https://news.google.com/rss/search?"
+        f"q=股市+經濟+台灣+台股+when:1d"
+        f"&hl=zh-TW&gl=TW&ceid=TW:zh-Hant&t={random.random()}"
+    )
+    headers = {"User-Agent": "Mozilla/5.0"}
     pool = []
     try:
         response = requests.get(url, headers=headers, timeout=15)
         soup = BeautifulSoup(response.content, features="xml")
-        items = soup.find_all('item', limit=limit)
+        items = soup.find_all("item", limit=limit)
         for item in items:
-            pool.append(item.title.text)
+            title = item.title.text.strip()
+            link  = item.link.text.strip()
+            # 嘗試解析來源
+            source = ""
+            if item.source:
+                source = item.source.text.strip()
+            pool.append({"title": title, "link": link, "source": source})
         return pool
-    except:
-        return ["無法取得即時新聞池"]
+    except Exception:
+        return [{"title": "無法取得即時新聞", "link": "#", "source": ""}]
+
+
+def format_pool_for_prompt(pool):
+    """將新聞池轉成 prompt 用的文字，索引號方便 AI 引用"""
+    lines = []
+    for i, item in enumerate(pool, 1):
+        src = f" ({item['source']})" if item["source"] else ""
+        lines.append(f"[{i}] 標題: {item['title']}{src} | 連結: {item['link']}")
+    return "\n".join(lines)
+
 
 def get_stock_data():
-    # --- 在此調整個股排列順序 ---
-    # 按照你想顯示的優先順序排列即可
-    tks = {
-        "加權指數": "^TWII", 
-        "台積電": "2330.TW", 
-        "鴻海": "2317.TW"
+    """下載個股與大盤資料，回傳 (純文字摘要, 結構化清單)"""
+    tickers = {
+        "加權指數": "^TWII",
+        "台積電":   "2330.TW",
+        "鴻海":     "2317.TW",
+        "聯發科":   "2454.TW",
+        "台達電":   "2308.TW",
     }
-    # --------------------------
-    res_list = []
-    for name, code in tks.items():
+    summary_parts = []
+    structured = []
+
+    for name, code in tickers.items():
         try:
             d = yf.download(code, period="5d", interval="1d", progress=False)
             if not d.empty:
-                curr = round(float(d['Close'].iloc[-1].item()), 2)
-                prev = round(float(d['Close'].iloc[-2].item()), 2)
+                curr = round(float(d["Close"].iloc[-1].item()), 2)
+                prev = round(float(d["Close"].iloc[-2].item()), 2)
                 diff = round(curr - prev, 2)
-                pct = round((diff / prev) * 100, 2)
-                # 數據精簡格式：名稱: 點數 (漲跌, 幅度%)
-                res_list.append(f"{name}: {curr} ({diff}, {pct}%)")
-        except:
-            res_list.append(f"{name}: 獲取失敗")
-    return " ".join(res_list)
+                pct  = round((diff / prev) * 100, 2)
+                sign = "▲" if diff >= 0 else "▼"
+                color = "up" if diff >= 0 else "down"
+                summary_parts.append(f"{name}: {curr} ({sign}{abs(diff)}, {pct}%)")
+                structured.append({
+                    "name": name,
+                    "price": curr,
+                    "diff": diff,
+                    "pct": pct,
+                    "sign": sign,
+                    "color": color,
+                })
+        except Exception:
+            summary_parts.append(f"{name}: 獲取失敗")
 
+    return " &nbsp; ".join(summary_parts), structured
+
+
+def build_stock_html(structured):
+    """將結構化股價資料轉為精緻 HTML 卡片"""
+    cards = []
+    for s in structured:
+        diff_str = f"{s['sign']}{abs(s['diff'])}"
+        pct_str  = f"{s['pct']:+.2f}%"
+        cards.append(f"""
+        <div class="stock-card {s['color']}">
+            <div class="stock-name">{s['name']}</div>
+            <div class="stock-price">{s['price']:,.2f}</div>
+            <div class="stock-change">{diff_str} &nbsp; {pct_str}</div>
+        </div>""")
+    return "\n".join(cards)
+
+
+# ── 主流程 ────────────────────────────────────────────────────────────────────
 try:
-    print("--- 啟動 AI 財經主編 (最終定錨版) ---")
-    tw_now = datetime.utcnow() + timedelta(hours=8)
-    time_str = tw_now.strftime('%Y-%m-%d %H:%M:%S')
-    
-    news_pool = get_news_pool(50)
-    stocks = get_stock_data()
-    
-    # 強化 Prompt：確保格式、繁體、分行
+    print("--- 啟動 AI 財經主編 ---")
+    tw_now   = datetime.utcnow() + timedelta(hours=8)
+    time_str = tw_now.strftime("%Y-%m-%d %H:%M:%S")
+
+    news_pool        = get_news_pool(50)
+    pool_text        = format_pool_for_prompt(news_pool)
+    stock_summary, structured_stocks = get_stock_data()
+    stock_cards_html = build_stock_html(structured_stocks)
+
+    # ── Prompt：要求先輸出評論，再列新聞，連結必須用索引號對應 ──────────────
     prompt = f"""
-    任務：專業財經主編分類比對。
-    要求：全篇使用「繁體中文」。
-    新聞池：{news_pool}
-    股市數據：{stocks}
-    
-    請嚴格依照此 Markdown 格式輸出，標題層級與換行不能變動：
+    任務：你是台灣頂級財經主編，請依照以下格式輸出，語言：繁體中文。
 
-    ## 📰 今日各報頭條摘要
+    【新聞池（請根據索引號引用連結）】
+    {pool_text}
 
-    ### 🏦 財經綜合焦點 (5則)
-    (5則新聞，格式：標題 - 來源)
+    【今日股市數據摘要】
+    {stock_summary}
 
-    ### 📖 經濟日報精選 (5則)
-    (5則新聞，格式：標題 - 來源)
+    ── 輸出格式（嚴格遵守，不得新增或刪除區段）──
 
-    ### 🌐 Google RSS 熱門 (5則)
-    (5則新聞，格式：標題 - 來源)
+    ## 📈 今日盤勢重點分析
+    （針對今日數據與市場局勢進行 120 字內的專業評論，必須放在所有新聞列表之前）
 
-    ## 📌 三大媒體焦點交集 (真正重複報導的事件)
-    [焦點 1]：描述 (請單獨換行)
-    [焦點 2]：描述 (請單獨換行)
-    [焦點 3]：描述 (請單獨換行)
+    ## 📰 財經綜合焦點（5 則）
+    （格式：- [新聞標題](對應連結) — 來源）
 
-    ## 📈 個股現況與大盤分析
-    數據：{stocks}
-    評論：(針對今日數據與國際局勢進行專業評論，100字內)
+    ## 📖 經濟/科技精選（5 則）
+    （格式：- [新聞標題](對應連結) — 來源）
 
-    【過濾守則】：剔除過期月份、國慶、封關等舊聞。數據與當前數據差距過大亦剔除。
+    ## 🌐 市場熱門話題（5 則）
+    （格式：- [新聞標題](對應連結) — 來源）
+
+    ## 📌 三大市場焦點交集
+    **焦點 1**：描述（30 字內）
+    **焦點 2**：描述（30 字內）
+    **焦點 3**：描述（30 字內）
+
+    【規則】
+    1. 連結必須從新聞池索引號取得，格式：[標題](連結)，不得捏造連結。
+    2. 評論區段（盤勢重點分析）必須是輸出的第一個區段。
+    3. 剔除封關、過期超過 24 小時之舊聞。
+    4. 每則新聞標題保持原文，不得改寫。
     """
-    
+
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "你是一位專業的台灣財經專家，僅使用繁體中文。"},
-            {"role": "user", "content": prompt}
+            {
+                "role": "system",
+                "content": (
+                    "你是一位專業的台灣財經主編，只使用繁體中文，"
+                    "絕不捏造連結，嚴格依照使用者指定的 Markdown 格式輸出。"
+                ),
+            },
+            {"role": "user", "content": prompt},
         ],
-        temperature=0.3
+        temperature=0.3,
     )
-    
-    md_text = response.choices[0].message.content
-    # nl2br 擴充功能確保 [焦點] 能夠正確換行
-    html_body = markdown.markdown(md_text, extensions=['tables', 'fenced_code', 'nl2br'])
 
-    full_html = f"""
-    <!DOCTYPE html>
-    <html lang="zh-TW">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>台灣股市 AI 精選情報</title>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
-        <style>
-            .markdown-body {{ box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; }}
-            @media (max-width: 767px) {{ .markdown-body {{ padding: 15px; }} }}
-            .info-banner {{ background-color: #f8f9fa; border-left: 5px solid #007bff; padding: 15px; margin-bottom: 30px; font-size: 0.95em; }}
-            #live-clock {{ color: #d73a49; font-weight: bold; }}
-            h1, h2, h3 {{ border-bottom: none !important; }}
-        </style>
-    </head>
-    <body class="markdown-body">
-        <h1>台灣股市 AI 精選情報</h1>
-        <div class="info-banner">
-            <p>最後更新時間：{time_str} (台北時間)</p>
-            <p>您的瀏覽時間：<span id="live-clock">讀取中...</span></p>
+    md_text   = response.choices[0].message.content
+    html_body = markdown.markdown(
+        md_text, extensions=["tables", "fenced_code", "nl2br"]
+    )
+
+    # ── HTML 模板 ────────────────────────────────────────────────────────────
+    full_html = f"""<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣股市 AI 精選情報</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* ── 基礎重置 ── */
+        *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
+
+        :root {{
+            --bg:        #0d1117;
+            --surface:   #161b22;
+            --border:    #30363d;
+            --text:      #e6edf3;
+            --muted:     #8b949e;
+            --accent:    #58a6ff;
+            --up:        #3fb950;
+            --down:      #f85149;
+            --up-bg:     #0d2818;
+            --down-bg:   #2d1117;
+            --tag-bg:    #1f2937;
+        }}
+
+        body {{
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Noto Sans TC", sans-serif;
+            font-size: 15px;
+            line-height: 1.75;
+        }}
+
+        /* ── 版面容器 ── */
+        .page-wrapper {{
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 32px 20px 64px;
+        }}
+
+        /* ── 頁首 ── */
+        .site-header {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 18px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }}
+        .site-title {{
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 0.02em;
+        }}
+        .site-meta {{
+            font-family: "JetBrains Mono", monospace;
+            font-size: 0.78rem;
+            color: var(--muted);
+        }}
+        #live-clock {{ color: var(--accent); }}
+
+        /* ── 股價卡片區塊 ── */
+        .stock-section {{
+            margin-bottom: 32px;
+        }}
+        .section-label {{
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--muted);
+            margin-bottom: 12px;
+        }}
+        .stock-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+        }}
+        .stock-card {{
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            transition: transform 0.15s ease;
+        }}
+        .stock-card:hover {{ transform: translateY(-2px); }}
+        .stock-card.up   {{ border-left: 3px solid var(--up);   background: var(--up-bg);   }}
+        .stock-card.down {{ border-left: 3px solid var(--down); background: var(--down-bg); }}
+        .stock-name  {{ font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; }}
+        .stock-price {{ font-family: "JetBrains Mono", monospace; font-size: 1.25rem; font-weight: 600; }}
+        .stock-card.up   .stock-price {{ color: var(--up);   }}
+        .stock-card.down .stock-price {{ color: var(--down); }}
+        .stock-change {{ font-family: "JetBrains Mono", monospace; font-size: 0.78rem; margin-top: 4px; color: var(--muted); }}
+
+        /* ── 分隔線 ── */
+        .divider {{
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 28px 0;
+        }}
+
+        /* ── Markdown 內容區 ── */
+        .md-body h2 {{
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 32px 0 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }}
+        .md-body h2:first-child {{ margin-top: 0; }}
+
+        /* ── 盤勢評論特別樣式 ── */
+        .md-body h2:first-of-type + p {{
+            background: #111827;
+            border-left: 4px solid var(--accent);
+            border-radius: 0 8px 8px 0;
+            padding: 16px 20px;
+            color: #c9d1d9;
+            font-size: 0.95rem;
+            line-height: 1.9;
+            margin-bottom: 8px;
+        }}
+
+        .md-body ul {{
+            list-style: none;
+            padding: 0;
+        }}
+        .md-body ul li {{
+            padding: 9px 0;
+            border-bottom: 1px solid #1c2128;
+            font-size: 0.92rem;
+            color: #c9d1d9;
+        }}
+        .md-body ul li:last-child {{ border-bottom: none; }}
+        .md-body a {{
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+        }}
+        .md-body a:hover {{ text-decoration: underline; }}
+
+        /* ── 焦點交集 ── */
+        .md-body strong {{ color: #f0f6fc; }}
+
+        /* ── 頁尾 ── */
+        .site-footer {{
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-top: 48px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }}
+
+        @media (max-width: 600px) {{
+            .stock-grid {{ grid-template-columns: repeat(2, 1fr); }}
+        }}
+    </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+    <!-- 頁首 -->
+    <header class="site-header">
+        <div class="site-title">📊 台灣股市 AI 精選情報</div>
+        <div class="site-meta">
+            更新：{time_str}（台北）&nbsp;｜&nbsp; 現在：<span id="live-clock">—</span>
         </div>
+    </header>
+
+    <!-- 股價區塊（明顯置頂，在評論之前） -->
+    <section class="stock-section">
+        <div class="section-label">即時行情</div>
+        <div class="stock-grid">
+            {stock_cards_html}
+        </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- AI 分析內容（評論已被 prompt 要求排第一區段） -->
+    <div class="md-body">
         {html_body}
-        <hr>
-        <p style="text-align: center; color: #666; font-size: 0.8em;">數據來源：Google News, Yahoo Finance</p>
-        <script>
-            function startClock() {{
-                setInterval(() => {{
-                    const now = new Date();
-                    document.getElementById('live-clock').innerText = now.toLocaleString('zh-TW', {{
-                        timeZone: 'Asia/Taipei', hour12: false
-                    }});
-                }}, 1000);
+    </div>
+
+    <footer class="site-footer">
+        數據來源：Google News RSS &bull; Yahoo Finance &bull; OpenAI GPT-3.5
+    </footer>
+</div>
+
+<script>
+    (function () {{
+        function tick() {{
+            const el = document.getElementById('live-clock');
+            if (el) {{
+                el.textContent = new Date().toLocaleString('zh-TW', {{
+                    timeZone: 'Asia/Taipei',
+                    hour12: false,
+                }});
             }}
-            startClock();
-        </script>
-    </body>
-    </html>
-    """
+        }}
+        tick();
+        setInterval(tick, 1000);
+    }})();
+</script>
+</body>
+</html>"""
 
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(full_html)
-    print(f"--- 網頁更新完成 (最終定錨版) ---")
 
-except Exception as e:
-    print(f"失敗: {traceback.format_exc()}")
+    print("--- 網頁更新完成 ---")
+
+except Exception:
+    print(f"失敗：\n{traceback.format_exc()}")
