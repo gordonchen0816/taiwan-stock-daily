@@ -21,32 +21,56 @@ def get_news_pool(limit=50):
     # ── 水源一：鉅亨網台股即時新聞 ──────────────────────────────────────────
     try:
         resp = requests.get("https://news.cnyes.com/rss/tw_stock", headers=headers, timeout=15)
-        soup = BeautifulSoup(resp.content, features="xml")
-        for item in soup.find_all("item", limit=limit):
-            title  = item.title.text.strip()
+        resp.raise_for_status()
+        soup  = BeautifulSoup(resp.content, features="xml")
+        items = soup.find_all("item", limit=limit)
+        if not items:
+            print("[WARN] 鉅亨網 RSS 回應成功但 <item> 數量為 0，請確認 RSS 結構")
+        for item in items:
+            title  = item.title.text.strip() if item.title else ""
+            if not title:
+                print("[WARN] 鉅亨網某 item 缺少 title，已略過")
+                continue
             if any(kw in title for kw in BLOCKED):
                 continue
-            link   = item.link.text.strip().split('?')[0]
+            link   = item.link.text.strip().split('?')[0] if item.link else "#"
             source = item.source.text.strip() if item.source else "鉅亨網"
             pool.append({"title": title, "link": link, "source": source})
-    except Exception:
-        pool.append({"title": "鉅亨網新聞暫時無法取得", "link": "#", "source": "鉅亨網"})
+        print(f"[INFO] 鉅亨網抓到 {len([p for p in pool if p['source']=='鉅亨網'])} 則新聞")
+    except Exception as e:
+        print(f"[ERROR] 鉅亨網 RSS 抓取失敗：{e}")
 
     # ── 水源二：財經M平方 總經深度觀點（取最新 8 則）────────────────────────
+    mm_count = 0
     try:
         resp = requests.get("https://www.macromicro.me/blog/rss", headers=headers, timeout=15)
-        soup = BeautifulSoup(resp.content, features="xml")
-        for item in soup.find_all("item", limit=8):
-            title = "[總經觀點] " + item.title.text.strip()
+        resp.raise_for_status()
+        soup  = BeautifulSoup(resp.content, features="xml")
+        items = soup.find_all("item", limit=8)
+        if not items:
+            print("[WARN] 財經M平方 RSS 回應成功但 <item> 數量為 0")
+        for item in items:
+            raw_title = item.title.text.strip() if item.title else ""
+            if not raw_title:
+                print("[WARN] 財經M平方某 item 缺少 title，已略過")
+                continue
+            title = "[總經觀點] " + raw_title
             if any(kw in title for kw in BLOCKED):
                 continue
             raw  = item.link.text.strip() if item.link else (item.find("link").get_text(strip=True) if item.find("link") else "#")
             link = raw.split('?')[0]
             pool.append({"title": title, "link": link, "source": "財經M平方"})
-    except Exception:
-        pass  # 副水源失敗不影響主流程
+            mm_count += 1
+        print(f"[INFO] 財經M平方抓到 {mm_count} 則觀點")
+    except Exception as e:
+        print(f"[ERROR] 財經M平方 RSS 抓取失敗：{e}")
 
-    return pool if pool else [{"title": "無法取得即時新聞", "link": "#", "source": ""}]
+    if not pool:
+        print("[ERROR] 所有新聞水源均失敗，pool 為空，AI 將無新聞可用")
+        return [{"title": "【RSS 異常】所有新聞水源均無法取得，請檢查 Actions Log", "link": "#", "source": "系統警告"}]
+
+    print(f"[INFO] 新聞池總計 {len(pool)} 則，傳入 AI")
+    return pool
 
 
 def format_pool_for_prompt(pool):
