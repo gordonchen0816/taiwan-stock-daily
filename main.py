@@ -21,15 +21,17 @@ def get_news_pool(limit=50):
     )
     headers = {"User-Agent": "Mozilla/5.0"}
     pool = []
+    seen_links = set()
     try:
         response = requests.get(url, headers=headers, timeout=15)
         soup = BeautifulSoup(response.content, features="xml")
         items = soup.find_all("item", limit=limit)
         for item in items:
             title = item.title.text.strip()
-            link  = item.link.text.replace('\n', '').strip()
-            if '&' in link:
-                link = link[:link.index('&')]
+            link  = item.link.text.replace('\n', '').strip().split('&')[0]
+            if link in seen_links:
+                continue
+            seen_links.add(link)
             # 嘗試解析來源
             source = ""
             if item.source:
@@ -114,7 +116,7 @@ try:
 
     # ── Prompt：要求先輸出評論，再列新聞，連結必須用索引號對應 ──────────────
     prompt = f"""
-    任務：你是台灣頂級財經主編，請依照以下格式輸出，語言：繁體中文。
+    任務：你是台灣頂級財經主編，文風專業犀利、觀點精準，請依照以下格式輸出，語言：繁體中文。
 
     【新聞池（請根據索引號引用連結）】
     {pool_text}
@@ -146,17 +148,20 @@ try:
     2. 評論區段（盤勢重點分析）必須是輸出的第一個區段。
     3. 剔除封關、過期超過 24 小時之舊聞。
     4. 每則新聞標題保持原文，不得改寫。
-    5. 新聞格式必須為 [標題](連結) - 來源，每個新聞僅能有一個連結，嚴禁重複輸出網址，且必須完整閉合 Markdown 括號。
+    5. 新聞格式必須為 [標題](連結) - 來源，每個新聞僅能有一個連結，嚴禁重複輸出網址。
+    6. 輸出前自我檢查：每個 [ 必須有對應的 ]，每個 ( 必須有對應的 )，不得出現任何未閉合括號。
     """
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
+        max_tokens=2000,
         messages=[
             {
                 "role": "system",
                 "content": (
-                    "你是一位專業的台灣財經主編，只使用繁體中文，"
-                    "絕不捏造連結，嚴格依照使用者指定的 Markdown 格式輸出。"
+                    "你是一位專業犀利的台灣財經主編，只使用繁體中文，"
+                    "文風精準有力，絕不捏造連結，輸出前必須確認所有 Markdown [ ]( ) 括號完整閉合，"
+                    "嚴格依照使用者指定的格式輸出。"
                 ),
             },
             {"role": "user", "content": prompt},
@@ -313,6 +318,7 @@ try:
             color: var(--accent);
             text-decoration: none;
             font-weight: 500;
+            word-break: break-all;
         }}
         .md-body a:hover {{ text-decoration: underline; }}
 
