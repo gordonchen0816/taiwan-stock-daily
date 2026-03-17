@@ -19,6 +19,7 @@ def calculate_rsi(data, window=14):
     return 100 - (100 / (1 + rs))
 
 def manage_memory(new_entry=None):
+    """記憶中樞：保留約 3.5 天的滾動紀錄"""
     file_path = "history.json"
     history = []
     if os.path.exists(file_path):
@@ -28,20 +29,17 @@ def manage_memory(new_entry=None):
         except: history = []
     if new_entry:
         history.append(new_entry)
-        history = history[-42:] # 保留約 3.5 天記憶
+        history = history[-42:] 
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(history, f, ensure_ascii=False, indent=4)
     return history
 
 def get_institutional_investors():
-    """優化版：抓取籌碼並判斷是否為今日最新數據"""
+    """抓取籌碼並判斷數據狀態"""
     try:
         url = "https://api.cnyes.com/media/api/v1/investor/total"
         r = requests.get(url, timeout=10)
         d = r.json()['items']
-        
-        # 取得數據更新日期 (API 通常會帶日期)
-        # 這裡簡化判斷：如果現在是 14:30 後且拿到數據，通常就是今天的
         f_buy = round(d.get('foreign', 0) / 100000000, 2)
         t_buy = round(d.get('trust', 0) / 100000000, 2)
         d_buy = round(d.get('dealer', 0) / 100000000, 2)
@@ -49,7 +47,7 @@ def get_institutional_investors():
         
         status = "【今日結算完成】" if total != 0 else "【盤中：沿用前一交易日籌碼】"
         text = f"{status} 外資:{f_buy}億 | 投信:{t_buy}億 | 自營:{d_buy}億 | 合計:{total}億"
-        data = {"foreign": f_buy, "trust": t_buy, "dealer": d_buy, "total": total, "is_final": total != 0}
+        data = {"total": total, "is_final": total != 0}
         return text, data
     except:
         return "籌碼數據連線異常", {}
@@ -81,65 +79,75 @@ def get_detailed_stock_info():
         except: pass
     return cards_html, summary_data
 
+def get_raw_news_data():
+    """獲取包含連結的新聞清單 (收集區來源：鉅亨網)"""
+    news_list = []
+    try:
+        r = requests.get("https://api.cnyes.com/media/api/v1/newslist/category/tw_stock?limit=20", timeout=10)
+        items = r.json()['items']['data']
+        for item in items:
+            news_list.append({
+                "title": item['title'],
+                "link": f"https://news.cnyes.com/news/id/{item['newsId']}"
+            })
+    except:
+        print("抓取新聞資料異常")
+    return news_list
+
 try:
-    print("--- 啟動具備時間意識的 AI Agent ---")
+    print("--- 啟動具備新聞追蹤功能之 AI Agent ---")
     tw_now = datetime.utcnow() + timedelta(hours=8)
     time_str = tw_now.strftime('%Y-%m-%d %H:%M:%S')
     current_hour_min = tw_now.strftime('%H:%M')
 
-    # 1. 數據獲取
+    # 1. 數據採集
     past_history = manage_memory()
     inst_text, inst_data = get_institutional_investors()
     stock_cards_html, stock_summary = get_detailed_stock_info()
-    news_pool = []
-    try:
-        r = requests.get("https://api.cnyes.com/media/api/v1/newslist/category/tw_stock?limit=20", timeout=10)
-        for item in r.json()['items']['data']: news_pool.append(item['title'])
-    except: pass
+    raw_news = get_raw_news_data()
+    news_titles = [n['title'] for n in raw_news]
 
-    # 2. 時間窗口判斷與 Prompt 動態調整
-    # 判斷是盤中 (09:00-14:30) 還是盤後
+    # 2. 模式判斷
     is_after_market = "14:30" <= current_hour_min <= "23:59"
-    
     analysis_mode = "【盤後籌碼定調模式】" if is_after_market else "【盤中動態監控模式】"
     
+    # 3. AI Agent 診斷思考
     prompt = f"""
-    任務：你是台股 AI 代理人，現在進入 {analysis_mode}。
-    目前時間：{current_hour_min}
-    
+    任務：你是台股 AI 代理人，現在進入 {analysis_mode}。台北時間 {current_hour_min}。
     【歷史記憶】：{json.dumps(past_history[-3:], ensure_ascii=False)}
     【三大法人籌碼】：{inst_text}
     【即時報價】：{json.dumps(stock_summary, ensure_ascii=False)}
-    【最新新聞】：{news_pool[:20]}
+    【最新新聞】：{news_titles[:20]}
 
-    請根據「時間窗口」調整你的口吻：
-    1. 若在 14:30 前：重點在於「當前價量」是否與「昨日籌碼」背離。法人是否在早盤利用昨天的利多進行出貨？
-    2. 若在 14:30 後：重點在於「今日最終籌碼結算」。判定今日的上漲是「法人真買」還是「散戶硬拉」。
-
-    輸出格式 Markdown：
+    請依據「背離分析」與「CFO 交易風險」邏輯輸出 Markdown：
     ## 🧠 {analysis_mode} 核心策略
-    (請直接點破當下的市場情緒，並比對記憶中的變化。)
-
     ## 🔍 異常警示：出貨 vs 承接
-    (分析 RSI 與法人的背離。若股價漲但法人數據為負，請明確警示「高位出貨」。)
-
     ## 🎯 下一階段觀察點
-    (給出支撐壓力位，並預告下一時段的觀測重點。)
     """
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=[{"role": "system", "content": f"你是一位具備時效敏感度的 CFO。現在是台北時間 {current_hour_min}。"},
+        messages=[{"role": "system", "content": f"你是一位專業的 CFO 顧問。現在是台北時間 {current_hour_min}。"},
                   {"role": "user", "content": prompt}],
         temperature=0.3
     )
-    
     ai_report = response.choices[0].message.content
     
-    # 3. 儲存記憶
-    manage_memory({"time": time_str, "index": stock_summary.get("加權指數", {}).get("price"), "summary": ai_report[:100]})
+    # 4. 建立新聞摘要區的 HTML (收集區摺疊選單)
+    news_links_html = """
+    <div style='margin-top: 30px;'>
+        <details>
+            <summary style='cursor:pointer; padding:15px; background:#161b22; border:1px solid #30363d; border-radius:8px; color:#c9d1d9; font-weight:bold;'>
+                📂 查看今日原始新聞摘要 (原始訊息收集區)
+            </summary>
+            <div style='padding:15px; background:#0d1117; border:1px solid #30363d; border-top:none; border-radius:0 0 8px 8px;'>
+                <ul style='list-style-type: none; padding-left: 0;'>
+    """
+    for n in raw_news:
+        news_links_html += f"<li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='{n['link']}' target='_blank' style='color:#58a6ff; text-decoration:none;'>{n['title']}</a></li>"
+    news_links_html += "</ul></div></details></div>"
 
-    # 4. 生成 HTML
+    # 5. 生成最終網頁 (整合消化與收集)
     html_report = markdown.markdown(ai_report, extensions=['nl2br'])
     full_html = f"""
     <!DOCTYPE html>
@@ -149,11 +157,14 @@ try:
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
         <style>
-            body {{ background-color: #0d1117; color: #c9d1d9; max-width: 1000px; margin: 0 auto; padding: 20px; }}
+            body {{ background-color: #0d1117; color: #c9d1d9; max-width: 1000px; margin: 0 auto; padding: 20px; font-family: -apple-system, system-ui, sans-serif; }}
             .markdown-body {{ background: transparent !important; color: inherit !important; }}
             .cards-container {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }}
-            .stock-card {{ background: #ffffff; border-radius: 10px; padding: 15px; color: #1f2328; }}
+            .stock-card {{ background: #ffffff; border-radius: 10px; padding: 15px; color: #1f2328; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
             .inst-banner {{ background: #161b22; border: 1px solid #30363d; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-top: 4px solid {"#f39c12" if is_after_market else "#3498db"}; }}
+            .stock-name {{ font-weight: bold; color: #0969da; border-bottom: 1px solid #eaecef; margin-bottom: 5px; }}
+            .stock-price {{ font-size: 1.4em; font-weight: bold; }}
+            a:hover {{ text-decoration: underline !important; }}
         </style>
     </head>
     <body class="markdown-body">
@@ -165,11 +176,16 @@ try:
         <div class="cards-container">{stock_cards_html}</div>
         <hr>
         {html_report}
+        {news_links_html}
+        <br><br>
     </body>
     </html>
     """
     with open("index.html", "w", encoding="utf-8") as f: f.write(full_html)
-    print(f"--- {analysis_mode} 報告生成完成 ---")
+    
+    # 存儲記憶
+    manage_memory({"time": time_str, "index": stock_summary.get("加權指數", {}).get("price"), "summary": ai_report[:100]})
+    print(f"--- 報告生成完成，包含新聞摘要區 (成功插入網頁) ---")
 
 except Exception as e:
     print(f"錯誤: {traceback.format_exc()}")
