@@ -6,25 +6,28 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
         <style>
-            body { background-color: #0d1117; color: #c9d1d9; max-width: 1000px; margin: 0 auto; padding: 20px; }
+            body { background-color: #0d1117; color: #c9d1d9; max-width: 1000px; margin: 0 auto; padding: 20px; font-family: -apple-system, system-ui, sans-serif; }
             .markdown-body { background: transparent !important; color: inherit !important; }
             .cards-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
-            .stock-card { background: #ffffff; border-radius: 10px; padding: 15px; color: #1f2328; }
+            .stock-card { background: #ffffff; border-radius: 10px; padding: 15px; color: #1f2328; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
             .inst-banner { background: #161b22; border: 1px solid #30363d; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-top: 4px solid #3498db; }
+            .stock-name { font-weight: bold; color: #0969da; border-bottom: 1px solid #eaecef; margin-bottom: 5px; }
+            .stock-price { font-size: 1.4em; font-weight: bold; }
+            a:hover { text-decoration: underline !important; }
         </style>
     </head>
     <body class="markdown-body">
         <h1>💹 AI 代理人：台股【盤中動態監控模式】</h1>
         <div class="inst-banner">
             <strong>📊 籌碼監控：</strong> 籌碼數據連線異常 <br>
-            <small>📅 更新時間：2026-03-17 13:46:59 | 狀態：⏳ 盤中即時監控</small>
+            <small>📅 更新時間：2026-03-17 14:21:18 | 狀態：⏳ 盤中即時監控</small>
         </div>
         <div class="cards-container">
                 <div class="stock-card">
                     <div class="stock-name">加權指數</div>
-                    <div class="stock-price">$33,823.09</div>
-                    <div class="stock-change" style="color:#d73a49">+422.77 (1.27%)</div>
-                    <div class="stock-meta">RSI: 50.25 | 趨勢: 多頭</div>
+                    <div class="stock-price">$33,836.57</div>
+                    <div class="stock-change" style="color:#d73a49">+436.25 (1.31%)</div>
+                    <div class="stock-meta">RSI: 50.32 | 趨勢: 多頭</div>
                 </div>
                 <div class="stock-card">
                     <div class="stock-name">櫃買指數</div>
@@ -40,23 +43,42 @@
                 </div>
                 <div class="stock-card">
                     <div class="stock-name">鴻勁</div>
-                    <div class="stock-price">$4,210.0</div>
-                    <div class="stock-change" style="color:#d73a49">+135.0 (3.31%)</div>
-                    <div class="stock-meta">RSI: 42.81 | 趨勢: 空頭</div>
+                    <div class="stock-price">$4,230.0</div>
+                    <div class="stock-change" style="color:#d73a49">+155.0 (3.8%)</div>
+                    <div class="stock-meta">RSI: 43.22 | 趨勢: 多頭</div>
                 </div>
                 <div class="stock-card">
                     <div class="stock-name">鴻海</div>
-                    <div class="stock-price">$213.0</div>
-                    <div class="stock-change" style="color:#22863a">-1.5 (-0.7%)</div>
-                    <div class="stock-meta">RSI: 40.83 | 趨勢: 空頭</div>
+                    <div class="stock-price">$212.0</div>
+                    <div class="stock-change" style="color:#22863a">-2.5 (-1.17%)</div>
+                    <div class="stock-meta">RSI: 40.35 | 趨勢: 空頭</div>
                 </div></div>
         <hr>
         <h2>🧠 【盤中動態監控模式】 核心策略</h2>
-<p>目前台股加權指數為33823.09點，上漲1.27%，整體市場情緒仍然呈現多頭趨勢。與歷史記憶中的數據相比，今日的指數漲幅略高於昨日的1.18%。然而，需注意的是，台積電和鴻勁的表現顯示出空頭趨勢，這可能暗示著市場內部的分歧。</p>
+<p>目前台股加權指數為33836.57點，上漲1.31%，整體市場情緒仍然呈現多頭趨勢。雖然指數持續上漲，但需注意個別股票的表現及籌碼的異常情況。</p>
 <h2>🔍 異常警示：出貨 vs 承接</h2>
-<p>目前的RSI指標為50.25，顯示市場情緒中性，但台積電和鴻勁的RSI分別為47.5和42.81，均顯示出空頭情緒。這可能暗示著法人在早盤利用昨日的利多進行出貨，尤其是在台積電的表現不佳的情況下，需特別警惕高位出貨的風險。</p>
+<ol>
+<li><strong>台積電</strong>：目前股價1870.0元，上漲0.27%，但RSI指標為47.5，顯示出現空頭趨勢，可能存在出貨壓力。</li>
+<li><strong>鴻海</strong>：股價212.0元，下跌1.17%，RSI為40.35，顯示出空頭趨勢，需謹慎觀察是否有進一步的出貨行為。</li>
+<li><strong>鴻勁</strong>：股價4230.0元，上漲3.8%，RSI為43.22，雖然上漲，但RSI偏低，需注意是否為短期承接或出貨的信號。</li>
+</ol>
 <h2>🎯 下一階段觀察點</h2>
-<p>支撐位可觀察在33700點附近，而壓力位則在33900點。接下來的觀察重點將集中在法人籌碼的變化，特別是三大法人是否會在後市進行承接，或是持續出貨。若指數持續上漲但法人數據仍顯示負面，則需謹慎評估市場的真實動能。</p>
+<ol>
+<li><strong>指數持續上漲的可持續性</strong>：觀察市場情緒是否能持續支持指數上行，特別是大型權值股的表現。</li>
+<li><strong>台積電與鴻海的籌碼變化</strong>：密切關注這兩檔股票的成交量及籌碼分布，判斷是否存在出貨風險。</li>
+<li><strong>三大法人籌碼</strong>：等待籌碼數據恢復正常，分析法人動向對市場的影響。</li>
+<li><strong>即將公布的經濟數據與新聞</strong>：關注即將發布的經濟數據及相關新聞，評估其對市場的潛在影響。</li>
+</ol>
+        
+    <div style='margin-top: 30px;'>
+        <details>
+            <summary style='cursor:pointer; padding:15px; background:#161b22; border:1px solid #30363d; border-radius:8px; color:#c9d1d9; font-weight:bold;'>
+                📂 查看今日原始新聞摘要 (原始訊息收集區)
+            </summary>
+            <div style='padding:15px; background:#0d1117; border:1px solid #30363d; border-top:none; border-radius:0 0 8px 8px;'>
+                <ul style='list-style-type: none; padding-left: 0;'>
+    <li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6387585' target='_blank' style='color:#58a6ff; text-decoration:none;'>〈房產〉房市急凍成交萎縮 房仲全聯會 ：這是房仲業20年來最嚴峻考驗</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6375848' target='_blank' style='color:#58a6ff; text-decoration:none;'>〈台股盤後〉GTC點兵、台積電秒填息帶飛 大漲494點收復短期均線</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6387546' target='_blank' style='color:#58a6ff; text-decoration:none;'>村田傳調漲部分磁珠、電感價格 台廠可望跟進受惠</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6387524' target='_blank' style='color:#58a6ff; text-decoration:none;'>高通總裁兼執行長6/1 COMPUTEX發表開幕主題演講 聚焦AI運算發展</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6387513' target='_blank' style='color:#58a6ff; text-decoration:none;'>〈輝達GTC大會〉新漢衝刺人型機器人 發表首款NVIDIA IGX Thor平台開發套件</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6387482' target='_blank' style='color:#58a6ff; text-decoration:none;'>〈焦點股〉輝達GTC宣告AI邁入太空時代 低軌衛星股東典光電、統新漲停</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6387457' target='_blank' style='color:#58a6ff; text-decoration:none;'>〈智慧城市展〉東元看好軟體業務今年三位數成長 AI智慧能源管理系統攻馬、泰兩國商機</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6387442' target='_blank' style='color:#58a6ff; text-decoration:none;'>《價值型投資 最新產業研究報告》愛普（6531-TW）從利基記憶體走向高階矽智財供應商，先進封裝需求放大</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6387386' target='_blank' style='color:#58a6ff; text-decoration:none;'>〈輝達GTC大會〉研華展出新世代Edge AI與Physical AI 解決方案</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6387376' target='_blank' style='color:#58a6ff; text-decoration:none;'>〈智慧城市展〉東元整合軟硬體展示AI智慧能源管理平台 自製PCS首度亮相</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6387385' target='_blank' style='color:#58a6ff; text-decoration:none;'>太空運算時代到來！輝達亮相Space-1 Vera Rubin模組</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6387374' target='_blank' style='color:#58a6ff; text-decoration:none;'>〈焦點股〉台積電、統一00981A同日上演除息秀 開盤秒填息達陣</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6387339' target='_blank' style='color:#58a6ff; text-decoration:none;'>「網紅」減稅紅包一表看！境內外稅率差很大 標準費用率45%可扣除及主動補報免罰</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6386937' target='_blank' style='color:#58a6ff; text-decoration:none;'>【隱形神山】 非典型濾材商從200萬庫存走向IPO  鈺祥變身半導體先進製程守護者</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6387381' target='_blank' style='color:#58a6ff; text-decoration:none;'>【ETF觀察】00400A 10 元主動式黑馬來了？國泰首檔主動式ETF為何引爆市場關注？</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6387372' target='_blank' style='color:#58a6ff; text-decoration:none;'>兆美元AI商機浮現，GTC釋出下一波科技行情關鍵訊號</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6387350' target='_blank' style='color:#58a6ff; text-decoration:none;'>〈焦點股〉錩新訂單湧入且擴產積極 股價連6紅K放量創1年來新高</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6387235' target='_blank' style='color:#58a6ff; text-decoration:none;'>台積電開盤衝1875元 再度上演秒填息秀</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6387218' target='_blank' style='color:#58a6ff; text-decoration:none;'>中東戰火助燃油價！看好投等債抗波動 貝萊德首檔主動式ETF 00985D「月月配」</a></li><li style='margin-bottom:10px; border-bottom:1px solid #21262d; padding-bottom:5px;'><a href='https://news.cnyes.com/news/id/6387269' target='_blank' style='color:#58a6ff; text-decoration:none;'>鉅亨速報 - Factset 最新調查：雙鴻(3324-TW)EPS預估下修至28.27元，預估目標價為1284元</a></li></ul></div></details></div>
+        <br><br>
     </body>
     </html>
     
