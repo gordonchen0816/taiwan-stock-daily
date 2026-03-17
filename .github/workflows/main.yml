@@ -2,11 +2,11 @@ name: Update Finance Report
 
 on:
   schedule:
-    - cron: '0 9 * * 1-5' # 台北時間下午 5 點執行 (1-5)
-  workflow_dispatch:      # 允許手動執行
+    - cron: '0 */2 * * *' # 每兩小時執行一次 (0, 2, 4... UTC)
+  workflow_dispatch:      # 允許手動隨時執行
 
 permissions:
-  contents: write         # 關鍵：允許機器人將記憶存回倉庫
+  contents: write         # 賦予寫入權限，讓 Actions 能存檔 history.json
 
 jobs:
   build:
@@ -33,8 +33,17 @@ jobs:
 
       - name: Commit and Push Memory
         run: |
-          git config --global user.name "GitHub Action Bot"
-          git config --global user.email "action@github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 確保在 Push 前拉取最新遠端更動，避免頻繁更新造成的衝突
+          git pull origin main --rebase || true
+          
+          # 將 index.html 和 history.json 加入追蹤
           git add index.html history.json || true
-          git commit -m "Update report and persistent memory [skip ci]" || true
-          git push
+          
+          # 提交更改，如果沒有變動則跳過
+          git commit -m "Update report and memory [skip ci]" || true
+          
+          # 推送到 main 分支
+          git push origin main
