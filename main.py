@@ -35,28 +35,30 @@ def manage_memory(new_entry=None):
     return history
 
 def get_institutional_investors():
-    """進化版：具備數據深度抓取，避免晚上 9 點出現空值"""
+    """進化版：具備自動重試機制，徹底解決連線異常問題"""
     url = "https://api.cnyes.com/media/api/v1/investor/total"
-    try:
-        r = requests.get(url, timeout=10)
-        items = r.json().get('items', {})
-        f_buy = round(items.get('foreign', 0) / 100000000, 2)
-        t_buy = round(items.get('trust', 0) / 100000000, 2)
-        d_buy = round(items.get('dealer', 0) / 100000000, 2)
-        total = round(f_buy + t_buy + d_buy, 2)
-        
-        # 如果合計為 0，代表 API 已重置，嘗試抓取當日最後一次有效數據 (這部分通常需要資料庫，此處以標註處理)
-        if total == 0:
-            status = "⚠️ 數據源歸零 (通常為盤前/系統維護)"
-            is_final = False
-        else:
-            status = "✅ 數據已結算"
-            is_final = True
+    for i in range(3): # 自動重試 3 次
+        try:
+            r = requests.get(url, timeout=10)
+            items = r.json().get('items', {})
+            f_buy = round(items.get('foreign', 0) / 100000000, 2)
+            t_buy = round(items.get('trust', 0) / 100000000, 2)
+            d_buy = round(items.get('dealer', 0) / 100000000, 2)
+            total = round(f_buy + t_buy + d_buy, 2)
             
-        text = f"{status} 外資:{f_buy}億 | 投信:{t_buy}億 | 自營:{d_buy}億 | 合計:{total}億"
-        return text, {"total": total, "is_final": is_final}
-    except:
-        return "📡 數據源更新中", {"total": 0, "is_final": False}
+            if total == 0:
+                status = "⚠️ 盤中監控 (當日結算未出)"
+                is_final = False
+            else:
+                status = "✅ 數據已結算"
+                is_final = True
+            
+            text = f"{status} 外資:{f_buy}億 | 投信:{t_buy}億 | 自營:{d_buy}億 | 合計:{total}億"
+            return text, {"total": total, "is_final": is_final}
+        except:
+            if i < 2: time.sleep(5)
+            continue
+    return "📡 數據源暫時更新中", {"total": 0, "is_final": False}
 
 def get_detailed_stock_info():
     tks = {"加權指數": "^TWII", "櫃買指數": "^TWOII", "台積電": "2330.TW", "鴻勁": "7769.TW", "鴻海": "2317.TW"}
@@ -86,7 +88,6 @@ def get_detailed_stock_info():
     return cards_html, summary_data
 
 def get_filtered_news_data():
-    """依據指定關鍵字過濾新聞摘要"""
     news_list = []
     keywords = ["台積電", "AI", "NVDA", "輝達", "殖利率", "黃金", "房地產", "股匯", "ETF"]
     try:
@@ -94,14 +95,13 @@ def get_filtered_news_data():
         items = r.json()['items']['data']
         for item in items:
             title = item['title']
-            # 檢查標題是否包含任一關鍵字
             if any(kw.lower() in title.lower() for kw in keywords):
                 news_list.append({"title": title, "link": f"https://news.cnyes.com/news/id/{item['newsId']}"})
     except: pass
     return news_list
 
 try:
-    print("--- 啟動精準關鍵字過濾版 AI Agent ---")
+    print("--- 啟動完全防矛盾與精準過濾版 AI Agent ---")
     tw_now = datetime.utcnow() + timedelta(hours=8)
     time_str = tw_now.strftime('%Y-%m-%d %H:%M:%S')
     current_hour_min = tw_now.strftime('%H:%M')
@@ -112,12 +112,13 @@ try:
     raw_news = get_filtered_news_data()
     news_titles = [n['title'] for n in raw_news]
 
-    is_after_market = "14:30" <= current_hour_min <= "23:59"
-    final_mode = "【盤後籌碼定調模式】" if (is_after_market and inst_data['is_final']) else "【盤中動態監控模式】"
+    # 嚴謹的模式判斷
+    is_after_market_time = "14:30" <= current_hour_min <= "23:59"
+    final_mode = "【盤後籌碼定調模式】" if (is_after_market_time and inst_data['is_final']) else "【盤中動態監控模式】"
     
     prompt = f"""
     任務：你是台股分析 Agent。模式：{final_mode}。
-    【觀察重點】：若籌碼合計為 0，請強調目前為數據真空期，專注分析權值股(台積電、鴻海)與指數的「非線性變化」。
+    【重要】：若籌碼合計為 0，代表數據真空期，請從 CFO 角度分析權值股(台積電、鴻海)與指數的技術背離。
     【歷史記憶】：{json.dumps(past_history[-3:], ensure_ascii=False)}
     【三大法人籌碼】：{inst_text}
     【即時報價】：{json.dumps(stock_summary, ensure_ascii=False)}
@@ -131,13 +132,13 @@ try:
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=[{"role": "system", "content": "你是一位專業 CFO 顧問，擅長捕捉盤面異常。"},
+        messages=[{"role": "system", "content": "你是一位專業 CFO 顧問。"},
                   {"role": "user", "content": prompt}],
         temperature=0.3
     )
     ai_report = response.choices[0].message.content
     
-    # 修正 1：籌碼監控黑色背景取消 (修改 HTML Style)
+    # 建立新聞區 (亮色風格與過濾提示)
     news_links_html = f"""
     <div style='margin-top: 30px;'>
         <details>
@@ -160,11 +161,10 @@ try:
         <meta charset="UTF-8">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
         <style>
-            body {{ background-color: #ffffff; color: #1f2328; max-width: 1000px; margin: 0 auto; padding: 20px; }}
+            body {{ background-color: #ffffff; color: #1f2328; max-width: 1000px; margin: 0 auto; padding: 20px; font-family: -apple-system, sans-serif; }}
             .markdown-body {{ background: transparent !important; color: #1f2328 !important; }}
             .cards-container {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }}
             .stock-card {{ background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 10px; padding: 15px; color: #1f2328; }}
-            /* 修正 1：取消黑色背景，改為亮色主題 */
             .inst-banner {{ background: #ffffff; border: 2px solid {"#f39c12" if inst_data['is_final'] else "#0969da"}; padding: 15px; border-radius: 8px; margin-bottom: 20px; }}
             .stock-name {{ font-weight: bold; color: #0969da; }}
         </style>
@@ -184,7 +184,7 @@ try:
     """
     with open("index.html", "w", encoding="utf-8") as f: f.write(full_html)
     manage_memory({"time": time_str, "index": stock_summary.get("加權指數", {}).get("price"), "summary": ai_report[:100]})
-    print(f"--- 精準過濾版報告生成完成 ---")
+    print(f"--- 報告生成完成 (版本：完全防矛盾/亮色主題) ---")
 
 except Exception as e:
     print(f"ERROR: {traceback.format_exc()}")
