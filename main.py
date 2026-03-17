@@ -35,9 +35,9 @@ def manage_memory(new_entry=None):
     return history
 
 def get_institutional_investors():
-    """進化版：具備自動重試機制，徹底解決連線異常問題"""
+    """進化版：具備自動重試機制與數據狀態判定"""
     url = "https://api.cnyes.com/media/api/v1/investor/total"
-    for i in range(3): # 自動重試 3 次
+    for i in range(3):
         try:
             r = requests.get(url, timeout=10)
             items = r.json().get('items', {})
@@ -88,20 +88,28 @@ def get_detailed_stock_info():
     return cards_html, summary_data
 
 def get_filtered_news_data():
+    """依據指定關鍵字過濾新聞 (包含您新增的 美債、AI Agent、籌碼)"""
     news_list = []
-    keywords = ["台積電", "AI", "NVDA", "輝達", "殖利率", "黃金", "房地產", "股匯", "ETF"]
+    # 定義 12 組關鍵字
+    keywords = [
+        "台積電", "AI", "NVDA", "輝達", "殖利率", 
+        "黃金", "房地產", "股匯", "ETF", "美債", 
+        "AI Agent", "籌碼"
+    ]
     try:
-        r = requests.get("https://api.cnyes.com/media/api/v1/newslist/category/tw_stock?limit=30", timeout=10)
+        # 增加抓取上限至 40 則，確保過濾後仍有足夠資訊量
+        r = requests.get("https://api.cnyes.com/media/api/v1/newslist/category/tw_stock?limit=40", timeout=10)
         items = r.json()['items']['data']
         for item in items:
             title = item['title']
+            # 只要標題包含任一關鍵字（不分大小寫）即收入
             if any(kw.lower() in title.lower() for kw in keywords):
                 news_list.append({"title": title, "link": f"https://news.cnyes.com/news/id/{item['newsId']}"})
     except: pass
     return news_list
 
 try:
-    print("--- 啟動完全防矛盾與精準過濾版 AI Agent ---")
+    print("--- 啟動精準關鍵字擴充版 AI Agent ---")
     tw_now = datetime.utcnow() + timedelta(hours=8)
     time_str = tw_now.strftime('%Y-%m-%d %H:%M:%S')
     current_hour_min = tw_now.strftime('%H:%M')
@@ -112,17 +120,16 @@ try:
     raw_news = get_filtered_news_data()
     news_titles = [n['title'] for n in raw_news]
 
-    # 嚴謹的模式判斷
     is_after_market_time = "14:30" <= current_hour_min <= "23:59"
     final_mode = "【盤後籌碼定調模式】" if (is_after_market_time and inst_data['is_final']) else "【盤中動態監控模式】"
     
     prompt = f"""
     任務：你是台股分析 Agent。模式：{final_mode}。
-    【重要】：若籌碼合計為 0，代表數據真空期，請從 CFO 角度分析權值股(台積電、鴻海)與指數的技術背離。
+    【重要】：若籌碼合計為 0，代表數據真空期，請專注分析權值股(台積電、鴻海)與指數的技術背離與 RSI 變化。
     【歷史記憶】：{json.dumps(past_history[-3:], ensure_ascii=False)}
     【三大法人籌碼】：{inst_text}
     【即時報價】：{json.dumps(stock_summary, ensure_ascii=False)}
-    【關鍵新聞】：{news_titles[:15]}
+    【篩選關鍵新聞】：{news_titles[:15]}
 
     輸出格式 Markdown：
     ## 🧠 {final_mode} 核心策略
@@ -132,28 +139,33 @@ try:
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=[{"role": "system", "content": "你是一位專業 CFO 顧問。"},
+        messages=[{"role": "system", "content": "你是一位專業 CFO 顧問，擅長分析量價背離與籌碼異常。"},
                   {"role": "user", "content": prompt}],
         temperature=0.3
     )
     ai_report = response.choices[0].message.content
     
-    # 建立新聞區 (亮色風格與過濾提示)
+    # 新聞 HTML 生成 (亮色主題)
     news_links_html = f"""
     <div style='margin-top: 30px;'>
         <details>
             <summary style='cursor:pointer; padding:15px; background:#f1f8ff; border:1px solid #0969da; border-radius:8px; color:#0969da; font-weight:bold;'>
-                📂 查看今日「精準過濾」新聞摘要 (關鍵字：台積電/AI/輝達/ETF/股匯)
+                📂 查看今日「精準過濾」新聞摘要 (關鍵字：台積電/AI/美債/ETF/籌碼/輝達...)
             </summary>
-            <div style='padding:15px; border:1px solid #d0d7de; border-top:none; border-radius:0 0 8px 8px;'>
+            <div style='padding:15px; border:1px solid #d0d7de; border-top:none; border-radius:0 0 8px 8px; background:#ffffff;'>
                 <ul style='list-style-type: none; padding-left: 0;'>
     """
     for n in raw_news:
         news_links_html += f"<li style='margin-bottom:10px; border-bottom:1px solid #d0d7de; padding-bottom:5px;'><a href='{n['link']}' target='_blank' style='color:#0969da; text-decoration:none;'>{n['title']}</a></li>"
+    
+    if not raw_news:
+        news_links_html += "<li>今日暫無符合關鍵字之重要新聞。</li>"
+        
     news_links_html += "</ul></div></details></div>"
 
     html_report = markdown.markdown(ai_report, extensions=['nl2br'])
     
+    # 整合完整亮色 HTML
     full_html = f"""
     <!DOCTYPE html>
     <html lang="zh-TW">
@@ -170,7 +182,7 @@ try:
         </style>
     </head>
     <body class="markdown-body">
-        <h1>💹 AI 代理人：台股分析報告</h1>
+        <h1>💹 AI 代理人：台股策略報告</h1>
         <div class="inst-banner">
             <strong>📊 籌碼動態：</strong> {inst_text} <br>
             <small>📅 更新時間：{time_str}</small>
@@ -184,7 +196,7 @@ try:
     """
     with open("index.html", "w", encoding="utf-8") as f: f.write(full_html)
     manage_memory({"time": time_str, "index": stock_summary.get("加權指數", {}).get("price"), "summary": ai_report[:100]})
-    print(f"--- 報告生成完成 (版本：完全防矛盾/亮色主題) ---")
+    print(f"--- 關鍵字擴充版報告生成完成 (亮色/關鍵字過濾) ---")
 
 except Exception as e:
     print(f"ERROR: {traceback.format_exc()}")
