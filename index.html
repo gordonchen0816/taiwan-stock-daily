@@ -4,102 +4,72 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>台股多源聚合報告</title>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
         <style>
-            body { background-color: #0d1117; color: #c9d1d9; max-width: 1000px; margin: 0 auto; padding: 30px; }
-            .markdown-body { background-color: transparent !important; color: inherit !important; }
-            .info-banner { background-color: #f6f8fa; color: #24292e; border-left: 5px solid #0366d6; padding: 12px; margin-bottom: 25px; border-radius: 4px; }
-            .cards-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 30px; }
-            .stock-card { background: #fff; border: 1px solid #e1e4e8; border-radius: 10px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+            body { background-color: #0d1117; color: #c9d1d9; max-width: 900px; margin: 0 auto; padding: 20px; }
+            .markdown-body { background: transparent !important; color: inherit !important; }
+            .cards-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-bottom: 20px; }
+            .stock-card { background: #fff; border-radius: 8px; padding: 12px; color: #24292e; }
             .stock-name { font-weight: bold; color: #0366d6; }
-            .stock-price { font-size: 1.2em; font-weight: bold; color: #24292e; }
-            .stock-meta { font-size: 0.75em; color: #586069; }
-            .stock-trend { margin-top: 5px; font-size: 0.75em; font-weight: bold; padding: 2px 8px; border-radius: 10px; display: inline-block; }
+            .stock-price { font-size: 1.2em; font-weight: bold; }
+            .info-banner { background: #f6f8fa; color: #24292e; padding: 10px; border-radius: 4px; margin-bottom: 20px; border-left: 5px solid #2ecc71; }
         </style>
     </head>
     <body class="markdown-body">
-        <h1>📈 台股多源聚合報告</h1>
-        <div class="info-banner">📋 更新時間：2026-03-17 07:02:35 | 累計偵測新聞：43 則</div>
+        <h1>🚀 AI 代理人：台股跨日分析報告</h1>
+        <div class="info-banner">📅 更新時間：2026-03-17 09:26:57 | 已累積記憶：1 天</div>
         <div class="cards-container">
                 <div class="stock-card">
                     <div class="stock-name">加權指數</div>
-                    <div class="stock-price">$33,342.51</div>
-                    <div class="stock-change" style="color:#22863a">-57.81 (-0.17%)</div>
-                    <div class="stock-meta">RSI: 47.71 | SMA7: 33,274.39</div>
-                    <div class="stock-meta">SMA20: $33,540.52</div>
-                    <div class="stock-trend" style="background:#fff5f5; color:#d73a49">均線空頭</div>
+                    <div class="stock-price">$33,867.35</div>
+                    <div class="stock-change" style="color:#d73a49">+467.03 (1.4%)</div>
+                    <div class="stock-meta">RSI: 50.48 | 趨勢: 多頭</div>
                 </div>
                 <div class="stock-card">
                     <div class="stock-name">櫃買指數</div>
                     <div class="stock-price">$312.9</div>
                     <div class="stock-change" style="color:#d73a49">+1.31 (0.42%)</div>
-                    <div class="stock-meta">RSI: 57.9 | SMA7: 304.74</div>
-                    <div class="stock-meta">SMA20: $303.82</div>
-                    <div class="stock-trend" style="background:#f1f8ff; color:#0366d6">均線多頭</div>
+                    <div class="stock-meta">RSI: 57.9 | 趨勢: 多頭</div>
                 </div>
                 <div class="stock-card">
                     <div class="stock-name">台積電</div>
-                    <div class="stock-price">$1,845.0</div>
-                    <div class="stock-change" style="color:#22863a">-20.0 (-1.07%)</div>
-                    <div class="stock-meta">RSI: 45.53 | SMA7: 1,869.29</div>
-                    <div class="stock-meta">SMA20: $1,889.5</div>
-                    <div class="stock-trend" style="background:#fff5f5; color:#d73a49">均線空頭</div>
+                    <div class="stock-price">$1,875.0</div>
+                    <div class="stock-change" style="color:#d73a49">+10.0 (0.54%)</div>
+                    <div class="stock-meta">RSI: 47.93 | 趨勢: 空頭</div>
                 </div>
                 <div class="stock-card">
                     <div class="stock-name">鴻勁</div>
-                    <div class="stock-price">$4,075.0</div>
-                    <div class="stock-change" style="color:#d73a49">+125.0 (3.16%)</div>
-                    <div class="stock-meta">RSI: 44.23 | SMA7: 4,132.14</div>
-                    <div class="stock-meta">SMA20: $4,197.25</div>
-                    <div class="stock-trend" style="background:#fff5f5; color:#d73a49">均線空頭</div>
+                    <div class="stock-price">$4,155.0</div>
+                    <div class="stock-change" style="color:#d73a49">+80.0 (1.96%)</div>
+                    <div class="stock-meta">RSI: 41.64 | 趨勢: 空頭</div>
                 </div>
                 <div class="stock-card">
                     <div class="stock-name">鴻海</div>
-                    <div class="stock-price">$216.5</div>
-                    <div class="stock-change" style="color:#d73a49">+2.0 (0.93%)</div>
-                    <div class="stock-meta">RSI: 42.94 | SMA7: 215.36</div>
-                    <div class="stock-meta">SMA20: $223.18</div>
-                    <div class="stock-trend" style="background:#fff5f5; color:#d73a49">均線空頭</div>
+                    <div class="stock-price">$214.0</div>
+                    <div class="stock-change" style="color:#22863a">-0.5 (-0.23%)</div>
+                    <div class="stock-meta">RSI: 41.32 | 趨勢: 空頭</div>
                 </div></div>
-        <h2>📰 今日重點摘要</h2>
+        <h2>🧠 跨日趨勢追蹤 (重點)</h2>
+<p>今日的台股走勢呈現多頭趨勢，整體加權指數上漲1.4%，顯示出市場情緒向好。儘管台積電、鴻勁和鴻海的股價趨勢為空頭，且RSI指標顯示出一些個股的超賣狀態，但整體市場仍然保持在多頭格局中，顯示出市場的韌性。這可能是因為其他中小型股的表現強勁，尤其是受惠於AI和光通訊需求的公司。</p>
+<h2>📰 今日核心解讀</h2>
 <ol>
-<li><strong>[經濟成長預測]</strong>：國泰台大上修2026年台灣GDP成長至5.8%，顯示經濟前景樂觀，但預估Q2經濟氣候轉為「陰」。</li>
-<li><strong>[台積電除息]</strong>：台積電今日除息6元，市場關注其填息表現，股價表現仍受均線空頭影響。</li>
-<li><strong>[鴻海法說]</strong>：鴻海法說會透露今年營業利益率將維持在3%以上，並計劃每股配息7.2元，吸引投資者目光。</li>
-<li><strong>[外資動向]</strong>：外資持續減碼新興亞股，上周減碼台股69億美元，顯示資金流出壓力加大。</li>
-<li><strong>[AI需求強勁]</strong>：光聖受惠於AI資料中心需求，預期今年光通訊出貨量將延續去年熱度，顯示AI產業持續蓬勃發展。</li>
+<li><strong>華通EPS預估上修</strong>：華通的EPS預估上修至7.77元，目標價210元，這對市場信心有正面影響。</li>
+<li><strong>AI資料中心需求強勁</strong>：光聖公司因AI資料中心需求強勁，預計今年光通訊出貨量將延續去年的熱度，吸引投資者注意。</li>
+<li><strong>中東局勢影響台幣</strong>：中東戰事持續影響市場，台幣連三日爆量驚險收復32元關卡，這可能影響外資的進出動向。</li>
 </ol>
-<h2>📊 市場概況與技術解讀</h2>
-<p>今日台股表現震盪，加權指數收於33342.51點，下跌0.17%，顯示出均線空頭的壓力。櫃買指數則逆勢上漲0.42%，顯示出部分中小型股的強勁表現。台積電股價1845.0元下跌1.07%，仍在均線空頭的影響下，市場對其填息的期待尚未完全反映。鴻海則上漲0.93%至216.5元，受法說會消息提振，顯示出市場對其未來獲利的信心。整體而言，市場情緒偏向謹慎，需密切關注外資動向及主要科技股的表現。</p>
-<h2>🔍 全方位新聞清單</h2>
-<h3>【鉅亨網】</h3>
+<h2>📊 數據觀測清單</h2>
 <ul>
-<li>國一台南段增設交流道工程 交長：朝今年10月底通車目標邁進</li>
-<li>CCL廠騰輝-KY去年EPS4.85元 擬配息3.35元配發率69%</li>
-<li>中東戰火未平熱錢出逃 連三日爆量驚險收復32元關卡</li>
-<li>AI動能強！國泰台大上修2026台灣GDP成長至5.8% 估Q2經濟氣候轉「陰」</li>
-<li>鴻海擬每股配息7.2元創高 創辦人郭台銘估領逾125億元現金股利</li>
+<li><strong>加權指數</strong>：33867.35，上漲1.4%，趨勢為多頭，RSI 50.48，顯示出市場動能尚可。</li>
+<li><strong>櫃買指數</strong>：312.9，上漲0.42%，趨勢為多頭，RSI 57.9，顯示出市場仍有上漲空間。</li>
+<li><strong>台積電</strong>：1875.0，漲幅0.54%，但趨勢為空頭，RSI 47.93，需注意是否會影響整體市場情緒。</li>
+<li><strong>鴻海</strong>：214.0，跌幅0.23%，趨勢為空頭，RSI 41.32，顯示出賣壓存在。</li>
+<li><strong>鴻勁</strong>：4155.0，上漲1.96%，但趨勢為空頭，RSI 41.64，需持續觀察。</li>
 </ul>
-<h3>【經濟日報】</h3>
+<h2>🎯 明日觀察站</h2>
 <ul>
-<li>弘塑、辛耘 認購放電 | 權證特區</li>
-<li>12檔台積概念股 短多點火</li>
-<li>AI 長線向好 逢低承接</li>
-<li>高階玻纖布需求仍旺 南亞：AI、PCB需求大、供需平衡仍需時間消化</li>
+<li><strong>支撐位</strong>：加權指數若能穩住在33800點以上，將有助於維持多頭格局。</li>
+<li><strong>壓力位</strong>：若加權指數突破34000點，將是重要的心理關卡，需密切關注成交量及市場情緒變化。</li>
 </ul>
-<h3>【工商時報】</h3>
-<ul>
-<li>外資賣亞股 台韓失血 上周減碼台股69億美元最多</li>
-<li>台股高檔震盪 分析師：今年最好上車機會 聰明錢盯著「三大」AI績優股</li>
-<li>台股逐洞賽｜多空拉鋸台股陷月線攻防戰</li>
-</ul>
-<h2>🎯 今日觀察重點</h2>
-<ol>
-<li>觀察台積電填息情況及其對股價的影響。</li>
-<li>留意外資動向，特別是對台股的減碼情況是否持續。</li>
-<li>監控AI相關產業的發展，特別是光通訊及半導體領域的需求變化。</li>
-</ol>
     </body>
     </html>
     
