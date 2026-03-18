@@ -1,21 +1,23 @@
 name: Update Finance Report
 
 on:
+  push:
+    branches:
+      - main
   schedule:
-    - cron: '0 */2 * * *' # 每兩小時執行一次 (0, 2, 4... UTC)
-  workflow_dispatch:      # 允許手動隨時執行
-
-permissions:
-  contents: write         # 賦予寫入權限，讓 Actions 能存檔 history.json
+    - cron: "0 * * * *"
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    # 新增：給予 Actions 寫入權限，否則無法更新網頁
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -24,26 +26,18 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install yfinance openai requests beautifulsoup4 markdown pandas
+          python -m pip install --upgrade pip
+          pip install yfinance openai requests beautifulsoup4 markdown
 
       - name: Run main script
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python main.py
 
-      - name: Commit and Push Memory
+      - name: Commit and Push changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # 確保在 Push 前拉取最新遠端更動，避免頻繁更新造成的衝突
-          git pull origin main --rebase || true
-          
-          # 將 index.html 和 history.json 加入追蹤
-          git add index.html history.json || true
-          
-          # 提交更改，如果沒有變動則跳過
-          git commit -m "Update report and memory [skip ci]" || true
-          
-          # 推送到 main 分支
-          git push origin main
+          git add index.html history.json
+          # 檢查是否有變動，避免空提交報錯
+          git diff --quiet && git diff --staged --quiet || (git commit -m "🚀 每小時自動化分析報告更新: $(date)" && git push)
