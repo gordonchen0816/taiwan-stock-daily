@@ -1,3 +1,4 @@
+# v2.0 合併版
 """
 台股每日彙整 - 合併版主程式
 結合：yfinance 股價、cnyes 法人、RSS + cnyes 新聞、GPT 報告、歷史記憶
