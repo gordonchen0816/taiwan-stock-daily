@@ -1,7 +1,8 @@
 import os
-import openai
+from openai import OpenAI
 
-openai.api_key = os.environ.get("OPENAI_API_KEY")
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
 
 def _fmt_institutional(inst):
     if not inst:
@@ -14,6 +15,7 @@ def _fmt_institutional(inst):
         f"合計：{arrow(inst.get('total_net', 0))} 張"
     )
 
+
 def _fmt_index(index):
     lines = []
     if "TAIEX" in index:
@@ -23,6 +25,7 @@ def _fmt_index(index):
         o = index["OTC"]
         lines.append(f"櫃買指數：{o['close']}")
     return "\n".join(lines) if lines else "（無大盤資料）"
+
 
 def _fmt_stocks(stocks):
     lines = []
@@ -35,33 +38,7 @@ def _fmt_stocks(stocks):
         )
     return "\n".join(lines) if lines else "（無個股資料）"
 
+
 def generate_report(news, market):
     news_text = "\n".join(
         [f"・[{n['source']}] {n['title']}" for n in news[:15]]
-    )
-    prompt = f"""你是一位專業的台灣股市分析助理。請根據以下資訊，用繁體中文產出今日台股每日彙整報告。格式要求：條列式、簡潔有力。
-
-【大盤指數】
-{_fmt_index(market.get('index', {}))}
-
-【三大法人買賣超】
-{_fmt_institutional(market.get('institutional', {}))}
-
-【個股技術面快照】
-{_fmt_stocks(market.get('stocks', []))}
-
-【今日財經新聞標題】
-{news_text}
-
-請按以下結構輸出（使用 Markdown）：
-## 📈 大盤總覽
-## 📰 新聞重點摘要
-## 🔍 個股技術面速覽
-## ⚠️ 今日需注意"""
-
-    response = openai.ChatCompletion.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=1200,
-    )
-    return response.choices[0].message.content
