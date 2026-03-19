@@ -98,17 +98,17 @@ def fetch_stocks():
             df = yf.download(ticker, period="60d", interval="1d", progress=False, auto_adjust=True)
             if df.empty:
                 continue
-            close     = df["Close"].squeeze()
-            curr_p    = round(float(close.iloc[-1]), 2)
-            prev_p    = round(float(close.iloc[-2]), 2)
-            diff      = round(curr_p - prev_p, 2)
-            pct       = round((diff / prev_p) * 100, 2)
-            sma7      = round(float(close.rolling(7).mean().iloc[-1]),  2)
-            sma20     = round(float(close.rolling(20).mean().iloc[-1]), 2)
-            rsi       = round(float(calculate_rsi(close).iloc[-1]), 2)
-            high_30   = round(float(close.tail(30).max()), 2)
-            low_30    = round(float(close.tail(30).min()), 2)
-            trend     = "多頭" if curr_p > sma20 else "空頭"
+            close   = df["Close"].squeeze()
+            curr_p  = round(float(close.iloc[-1]), 2)
+            prev_p  = round(float(close.iloc[-2]), 2)
+            diff    = round(curr_p - prev_p, 2)
+            pct     = round((diff / prev_p) * 100, 2)
+            sma7    = round(float(close.rolling(7).mean().iloc[-1]),  2)
+            sma20   = round(float(close.rolling(20).mean().iloc[-1]), 2)
+            rsi     = round(float(calculate_rsi(close).iloc[-1]), 2)
+            high_30 = round(float(close.tail(30).max()), 2)
+            low_30  = round(float(close.tail(30).min()), 2)
+            trend   = "多頭" if curr_p > sma20 else "空頭"
             results.append({
                 "name":    name,
                 "ticker":  ticker,
