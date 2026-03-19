@@ -1,362 +1,97 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>台股每日彙整</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
-  <style>
-    :root {
-      --bg:        #0f1117;
-      --card:      #1a1d27;
-      --border:    #2a2d3a;
-      --text:      #e2e8f0;
-      --muted:     #94a3b8;
-      --accent:    #3b82f6;
-      --green:     #22c55e;
-      --red:       #ef4444;
-      --yellow:    #f59e0b;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, 'Segoe UI', sans-serif;
-      min-height: 100vh;
-    }
-
-    header {
-      border-bottom: 1px solid var(--border);
-      padding: 1.2rem 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-
-    header h1 { font-size: 1.3rem; font-weight: 700; }
-    header h1 span { color: var(--accent); }
-
-    .nav-btns { display: flex; gap: .6rem; align-items: center; }
-
-    .nav-btns button {
-      background: var(--card);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: .4rem .9rem;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: .85rem;
-      transition: background .15s;
-    }
-    .nav-btns button:hover { background: var(--border); }
-    .nav-btns button:disabled { opacity: .4; cursor: default; }
-
-    #date-display {
-      font-size: .9rem;
-      color: var(--muted);
-      min-width: 90px;
-      text-align: center;
-    }
-
-    main {
-      max-width: 960px;
-      margin: 2rem auto;
-      padding: 0 1.2rem;
-      display: grid;
-      gap: 1.4rem;
-    }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.4rem 1.6rem;
-    }
-
-    .card h2 {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--accent);
-      margin-bottom: 1rem;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: .6rem;
-    }
-
-    /* 大盤指數 */
-    .index-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: .8rem;
-    }
-    .index-item {
-      background: var(--bg);
-      border-radius: 8px;
-      padding: 1rem;
-      text-align: center;
-    }
-    .index-item .label { font-size: .8rem; color: var(--muted); margin-bottom: .4rem; }
-    .index-item .value { font-size: 1.6rem; font-weight: 700; }
-    .index-item .change { font-size: .85rem; margin-top: .3rem; }
-    .up   { color: var(--green); }
-    .down { color: var(--red); }
-
-    /* 法人買賣超 */
-    .inst-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: .8rem;
-    }
-    .inst-item {
-      background: var(--bg);
-      border-radius: 8px;
-      padding: .8rem 1rem;
-      text-align: center;
-    }
-    .inst-item .label { font-size: .8rem; color: var(--muted); margin-bottom: .3rem; }
-    .inst-item .value { font-size: 1.1rem; font-weight: 600; }
-
-    /* 個股技術面 */
-    .stock-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
-    .stock-table th {
-      text-align: left;
-      color: var(--muted);
-      font-weight: 500;
-      padding: .5rem .6rem;
-      border-bottom: 1px solid var(--border);
-    }
-    .stock-table td { padding: .55rem .6rem; border-bottom: 1px solid var(--border); }
-    .stock-table tr:last-child td { border-bottom: none; }
-    .rsi-badge {
-      display: inline-block;
-      padding: .15rem .5rem;
-      border-radius: 4px;
-      font-size: .8rem;
-      font-weight: 600;
-    }
-    .rsi-hot  { background: rgba(239,68,68,.2);  color: var(--red); }
-    .rsi-cold { background: rgba(59,130,246,.2); color: var(--accent); }
-    .rsi-mid  { background: rgba(148,163,184,.1); color: var(--muted); }
-
-    /* AI 報告 */
-    #report-content h2 { color: var(--text); font-size: .95rem; margin: 1rem 0 .5rem; border: none; padding: 0; }
-    #report-content h3 { color: var(--muted); font-size: .88rem; margin: .8rem 0 .4rem; }
-    #report-content p  { line-height: 1.7; font-size: .9rem; margin-bottom: .6rem; }
-    #report-content ul { padding-left: 1.2rem; }
-    #report-content li { line-height: 1.7; font-size: .9rem; margin-bottom: .3rem; }
-
-    /* 新聞列表 */
-    .news-list { list-style: none; }
-    .news-list li {
-      padding: .6rem 0;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      gap: .8rem;
-      align-items: baseline;
-    }
-    .news-list li:last-child { border-bottom: none; }
-    .news-source {
-      font-size: .72rem;
-      color: var(--accent);
-      background: rgba(59,130,246,.1);
-      padding: .1rem .4rem;
-      border-radius: 3px;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-    .news-list a {
-      color: var(--text);
-      text-decoration: none;
-      font-size: .88rem;
-      line-height: 1.5;
-    }
-    .news-list a:hover { color: var(--accent); }
-
-    #loading {
-      text-align: center;
-      color: var(--muted);
-      padding: 4rem 0;
-      font-size: 1.1rem;
-    }
-
-    footer {
-      text-align: center;
-      color: var(--muted);
-      font-size: .78rem;
-      padding: 2rem;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台股每日彙整</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+<style>
+  body { background:#ffffff; color:#1f2328; max-width:1000px; margin:0 auto; padding:20px; font-family:-apple-system,sans-serif; }
+  .markdown-body { background:transparent!important; color:#1f2328!important; }
+  h1 { border-bottom:2px solid #d0d7de; padding-bottom:.5rem; }
+  .inst-banner { background:#f6f8fa; border:2px solid #0969da; padding:15px; border-radius:8px; margin-bottom:20px; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:15px; margin-bottom:30px; }
+  .stock-card { background:#f6f8fa; border:1px solid #d0d7de; border-radius:10px; padding:15px; }
+  .stock-name { font-weight:700; color:#0969da; margin-bottom:4px; }
+  .stock-price { font-size:1.4rem; font-weight:700; }
+  .stock-change { font-size:.95rem; margin:2px 0; }
+  .stock-meta { font-size:.8rem; color:#57606a; margin-top:4px; }
+  .news-list { list-style:none; padding:0; }
+  .news-list li { padding:.6rem 0; border-bottom:1px solid #d0d7de; display:flex; gap:.6rem; align-items:baseline; }
+  .news-source { font-size:.72rem; color:#0969da; background:rgba(9,105,218,.1); padding:.1rem .4rem; border-radius:3px; white-space:nowrap; flex-shrink:0; }
+  .news-list a { color:#1f2328; text-decoration:none; font-size:.88rem; line-height:1.5; }
+  .news-list a:hover { color:#0969da; }
+  details summary { cursor:pointer; padding:12px; background:#f1f8ff; border:1px solid #0969da; border-radius:8px; color:#0969da; font-weight:700; margin-top:20px; }
+  footer { text-align:center; color:#57606a; font-size:.78rem; padding:2rem 0; border-top:1px solid #d0d7de; margin-top:2rem; }
+</style>
 </head>
-<body>
-
-<header>
-  <h1>📊 <span>台股</span>每日彙整</h1>
-  <div class="nav-btns">
-    <button id="btn-prev">← 前一天</button>
-    <span id="date-display">載入中</span>
-    <button id="btn-next" disabled>後一天 →</button>
-  </div>
-</header>
-
-<main id="app">
-  <div id="loading">⏳ 載入資料中...</div>
-</main>
-
-<footer id="footer"></footer>
-
-<script>
-  let dateList = [];
-  let currentIndex = 0;
-
-  async function loadIndex() {
-    const r = await fetch("index_list.json");
-    dateList = await r.json();
-    currentIndex = 0;
-    await loadDate(dateList[0]);
-    updateNavButtons();
-  }
-
-  async function loadDate(date) {
-    document.getElementById("date-display").textContent = date;
-    const app = document.getElementById("app");
-    app.innerHTML = '<div id="loading">⏳ 載入資料中...</div>';
-
-    let data;
-    try {
-      const r = await fetch(date === dateList[0] ? "latest.json" : `../data/${date}.json`);
-      data = await r.json();
-    } catch (e) {
-      app.innerHTML = `<div id="loading" style="color:#ef4444">❌ 無法載入 ${date} 的資料</div>`;
-      return;
-    }
-
-    app.innerHTML = renderAll(data);
-  }
-
-  function formatNet(v) {
-    if (v === undefined) return "—";
-    const s = v >= 0 ? `+${v.toLocaleString()}` : v.toLocaleString();
-    return `<span class="${v >= 0 ? 'up' : 'down'}">${s}</span>`;
-  }
-
-  function rsiClass(v) {
-    if (v >= 70) return "rsi-hot";
-    if (v <= 30) return "rsi-cold";
-    return "rsi-mid";
-  }
-
-  function renderAll(data) {
-    const { market = {}, news = [], report = "" } = data;
-    const { index = {}, institutional = {}, stocks = [] } = market;
-
-    // 大盤
-    let indexHtml = "";
-    if (index.TAIEX) {
-      const up = index.TAIEX.change && !index.TAIEX.change.startsWith("-");
-      indexHtml += `
-        <div class="index-item">
-          <div class="label">加權指數</div>
-          <div class="value ${up ? 'up' : 'down'}">${index.TAIEX.close?.toLocaleString() ?? "—"}</div>
-          <div class="change ${up ? 'up' : 'down'}">${index.TAIEX.change ?? ""}</div>
-        </div>`;
-    }
-    if (index.OTC) {
-      indexHtml += `
-        <div class="index-item">
-          <div class="label">櫃買指數</div>
-          <div class="value">${index.OTC.close ?? "—"}</div>
-        </div>`;
-    }
-
-    // 法人
-    const inst = institutional;
-    const instHtml = inst.total_net !== undefined ? `
-      <div class="inst-item"><div class="label">外資</div><div class="value">${formatNet(inst.foreign_net)}</div></div>
-      <div class="inst-item"><div class="label">投信</div><div class="value">${formatNet(inst.trust_net)}</div></div>
-      <div class="inst-item"><div class="label">自營商</div><div class="value">${formatNet(inst.dealer_net)}</div></div>
-      <div class="inst-item"><div class="label">合計</div><div class="value">${formatNet(inst.total_net)}</div></div>
-    ` : "<span style='color:var(--muted)'>今日無法人資料</span>";
-
-    // 個股
-    const stockRows = stocks.filter(s => !s.error).map(s => `
-      <tr>
-        <td><strong>${s.stock_id}</strong></td>
-        <td>${s.close}</td>
-        <td><span class="rsi-badge ${rsiClass(s.RSI14)}">${s.RSI14}</span></td>
-        <td>${s.SMA7} / ${s.SMA20}</td>
-        <td>${s.high_30d} / ${s.low_30d}</td>
-      </tr>`).join("");
-
-    // 新聞
-    const newsHtml = news.slice(0, 20).map(n => `
-      <li>
-        <span class="news-source">${n.source}</span>
-        <a href="${n.link}" target="_blank" rel="noopener">${n.title}</a>
-      </li>`).join("");
-
-    return `
-      <div class="card">
-        <h2>📈 大盤指數</h2>
-        <div class="index-grid">${indexHtml || '<span style="color:var(--muted)">無資料</span>'}</div>
-      </div>
-
-      <div class="card">
-        <h2>🏦 三大法人買賣超（張）</h2>
-        <div class="inst-grid">${instHtml}</div>
-      </div>
-
-      <div class="card">
-        <h2>🔍 個股技術面快照</h2>
-        <table class="stock-table">
-          <thead><tr>
-            <th>股票</th><th>收盤</th><th>RSI14</th>
-            <th>SMA7 / SMA20</th><th>30日高 / 低</th>
-          </tr></thead>
-          <tbody>${stockRows || '<tr><td colspan="5" style="color:var(--muted)">無資料</td></tr>'}</tbody>
-        </table>
-      </div>
-
-      <div class="card">
-        <h2>🤖 AI 每日彙整報告</h2>
-        <div id="report-content">${marked.parse(report || "（無報告）")}</div>
-      </div>
-
-      <div class="card">
-        <h2>📰 今日財經新聞</h2>
-        <ul class="news-list">${newsHtml || '<li style="color:var(--muted)">無新聞資料</li>'}</ul>
-      </div>
-    `;
-  }
-
-  document.getElementById("btn-prev").addEventListener("click", () => {
-    if (currentIndex < dateList.length - 1) {
-      currentIndex++;
-      loadDate(dateList[currentIndex]);
-      updateNavButtons();
-    }
-  });
-
-  document.getElementById("btn-next").addEventListener("click", () => {
-    if (currentIndex > 0) {
-      currentIndex--;
-      loadDate(dateList[currentIndex]);
-      updateNavButtons();
-    }
-  });
-
-  function updateNavButtons() {
-    document.getElementById("btn-prev").disabled = currentIndex >= dateList.length - 1;
-    document.getElementById("btn-next").disabled = currentIndex <= 0;
-  }
-
-  loadIndex().then(() => {
-    document.getElementById("footer").textContent =
-      `資料每個交易日自動更新 ・ Taiwan Stock Daily Digest`;
-  });
-</script>
-
+<body class="markdown-body">
+<h1>💹 台股每日彙整報告</h1>
+<div class="inst-banner">
+  <strong>📊 三大法人籌碼：</strong>⚠️ 盤中監控（結算未出） | 外資：0.0億 | 投信：0.0億 | 自營：0.0億 | 合計：0.0億<br>
+  <small>📅 更新時間：2026-03-19 10:46:56</small>
+</div>
+<div class="cards"></div>
+<hr>
+<h2>🤖 AI 每日分析報告</h2>
+<h2>📈 大盤與籌碼總覽</h2>
+<ul>
+<li>三大法人合計：0.0億</li>
+<li>外資：0.0億</li>
+<li>投信：0.0億</li>
+<li>自營：0.0億</li>
+</ul>
+<h2>🔍 個股技術面速覽</h2>
+<ul>
+<li>目前無法提供具體個股技術面數據，需關注權值股的技術面與 RSI 變化。</li>
+<li>建議觀察台積電、鴻海等權值股的走勢，特別是其 RSI 指標是否出現超買或超賣情況。</li>
+</ul>
+<h2>📰 新聞重點摘要（5 則）</h2>
+<ol>
+<li>期元大 S&amp;P 黃金反1 ETF 進行反分割，4月22日新受益憑證上市買賣。</li>
+<li>台積電資產大遷徙，3月來估斥130億元買債，高盛、花旗等金融債成標配。</li>
+<li>十大國民ETF績效大公開，00981A新入人氣榜就登基績效王，僅4檔勝大盤。</li>
+<li>「包租婆」策略兼顧利得與息收，摩根首發主動式ETF 00401A紀律執行掩護性買權。</li>
+<li>5股變1股！期元大S&amp;P黃金反1 ETF反分割，4/15至4/21暫停交易。</li>
+</ol>
+<h2>⚠️ 今日需注意</h2>
+<ul>
+<li>由於法人合計為 0，需特別關注權值股的技術面變化，尤其是台積電和鴻海的走勢。</li>
+<li>注意 RSI 指標的變化，判斷是否存在超買或超賣的風險。</li>
+</ul>
+<h2>🎯 下一階段觀察點</h2>
+<ul>
+<li>持續追蹤權值股的技術面指標，特別是 RSI 與成交量的變化。</li>
+<li>觀察市場情緒及法人動向，若出現法人進場的跡象，需重新評估市場走勢。</li>
+</ul>
+<details>
+  <summary>📂 今日關鍵字過濾新聞（共 6 則）</summary>
+  <ul class="news-list">
+        <li>
+            <span class="news-source">經濟日報</span>
+            <a href="https://money.udn.com/money/story/5612/9389606" target="_blank">期元大 S&P 黃金反1 ETF 進行反分割 4月22日新受益憑證上市買賣</a>
+        </li>
+        <li>
+            <span class="news-source">鉅亨網</span>
+            <a href="https://news.cnyes.com/news/id/6389628" target="_blank">台積電資產大遷徙！3月來估斥130億元買債 高盛、花旗等金融債成標配</a>
+        </li>
+        <li>
+            <span class="news-source">鉅亨網</span>
+            <a href="https://news.cnyes.com/news/id/6389673" target="_blank">十大國民ETF績效大公開！00981A新入人氣榜就登基績效王 僅4檔勝大盤</a>
+        </li>
+        <li>
+            <span class="news-source">鉅亨網</span>
+            <a href="https://news.cnyes.com/news/id/6389388" target="_blank">「包租婆」策略兼顧利得與息收 摩根首發主動式ETF 00401A紀律執行掩護性買權</a>
+        </li>
+        <li>
+            <span class="news-source">鉅亨網</span>
+            <a href="https://news.cnyes.com/news/id/6389405" target="_blank">5股變1股！期元大S&P黃金反1 ETF反分割 4/15至4/21暫停交易</a>
+        </li>
+        <li>
+            <span class="news-source">鉅亨網</span>
+            <a href="https://news.cnyes.com/news/id/6389338" target="_blank">大盤 台積電 變盤? 華邦電 南亞科 鴻海 小心? 【方土昶第2】目標兩倍</a>
+        </li></ul>
+</details>
+<footer>資料每個交易日自動更新 ・ Taiwan Stock Daily Digest</footer>
 </body>
 </html>
