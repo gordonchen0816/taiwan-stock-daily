@@ -12,8 +12,10 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 def get_news_pool(limit=50):
-    """抓取鉅亨網台股 RSS + 財經M平方總經觀點，回傳合併清單"""
-    headers = {"User-Agent": "Mozilla/5.0"}
+    """抓取台股新聞，三水源備援，回傳合併清單（全部失敗回傳空清單）"""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
     pool = []
 
     BLOCKED = {"港股", "廣告", "贊助"}
@@ -24,35 +26,31 @@ def get_news_pool(limit=50):
         resp.raise_for_status()
         soup  = BeautifulSoup(resp.content, features="xml")
         items = soup.find_all("item", limit=limit)
-        if not items:
-            print("[WARN] 鉅亨網 RSS 回應成功但 <item> 數量為 0，請確認 RSS 結構")
+        print(f"DEBUG: 鉅亨網 HTTP {resp.status_code}, 找到 {len(items)} 個 <item>")
         for item in items:
             title  = item.title.text.strip() if item.title else ""
             if not title:
-                print("[WARN] 鉅亨網某 item 缺少 title，已略過")
                 continue
             if any(kw in title for kw in BLOCKED):
                 continue
             link   = item.link.text.strip().split('?')[0] if item.link else "#"
             source = item.source.text.strip() if item.source else "鉅亨網"
             pool.append({"title": title, "link": link, "source": source})
-        print(f"[INFO] 鉅亨網抓到 {len([p for p in pool if p['source']=='鉅亨網'])} 則新聞")
+        print(f"DEBUG: 抓到 {len(pool)} 則新聞（鉅亨網過濾後）")
     except Exception as e:
         print(f"[ERROR] 鉅亨網 RSS 抓取失敗：{e}")
 
     # ── 水源二：財經M平方 總經深度觀點（取最新 8 則）────────────────────────
-    mm_count = 0
+    mm_before = len(pool)
     try:
         resp = requests.get("https://www.macromicro.me/blog/rss", headers=headers, timeout=15)
         resp.raise_for_status()
         soup  = BeautifulSoup(resp.content, features="xml")
         items = soup.find_all("item", limit=8)
-        if not items:
-            print("[WARN] 財經M平方 RSS 回應成功但 <item> 數量為 0")
+        print(f"DEBUG: 財經M平方 HTTP {resp.status_code}, 找到 {len(items)} 個 <item>")
         for item in items:
             raw_title = item.title.text.strip() if item.title else ""
             if not raw_title:
-                print("[WARN] 財經M平方某 item 缺少 title，已略過")
                 continue
             title = "[總經觀點] " + raw_title
             if any(kw in title for kw in BLOCKED):
@@ -60,14 +58,33 @@ def get_news_pool(limit=50):
             raw  = item.link.text.strip() if item.link else (item.find("link").get_text(strip=True) if item.find("link") else "#")
             link = raw.split('?')[0]
             pool.append({"title": title, "link": link, "source": "財經M平方"})
-            mm_count += 1
-        print(f"[INFO] 財經M平方抓到 {mm_count} 則觀點")
+        print(f"DEBUG: 抓到 {len(pool)} 則新聞（+財經M平方 {len(pool)-mm_before} 則）")
     except Exception as e:
         print(f"[ERROR] 財經M平方 RSS 抓取失敗：{e}")
 
+    # ── 水源三：Yahoo Finance 台股新聞（備援）────────────────────────────────
+    yahoo_before = len(pool)
+    try:
+        resp = requests.get("https://tw.stock.yahoo.com/rss?category=tw-market", headers=headers, timeout=15)
+        resp.raise_for_status()
+        soup  = BeautifulSoup(resp.content, features="xml")
+        items = soup.find_all("item", limit=20)
+        print(f"DEBUG: Yahoo Finance HTTP {resp.status_code}, 找到 {len(items)} 個 <item>")
+        for item in items:
+            title = item.title.text.strip() if item.title else ""
+            if not title:
+                continue
+            if any(kw in title for kw in BLOCKED):
+                continue
+            link  = item.link.text.strip().split('?')[0] if item.link else "#"
+            pool.append({"title": title, "link": link, "source": "Yahoo Finance"})
+        print(f"DEBUG: 抓到 {len(pool)} 則新聞（+Yahoo Finance {len(pool)-yahoo_before} 則）")
+    except Exception as e:
+        print(f"[ERROR] Yahoo Finance RSS 抓取失敗：{e}")
+
     if not pool:
-        print("[ERROR] 所有新聞水源均失敗，pool 為空，AI 將無新聞可用")
-        return [{"title": "【RSS 異常】所有新聞水源均無法取得，請檢查 Actions Log", "link": "#", "source": "系統警告"}]
+        print("[ERROR] 所有新聞水源均失敗，回傳空清單")
+        return []
 
     print(f"[INFO] 新聞池總計 {len(pool)} 則，傳入 AI")
     return pool
@@ -141,15 +158,16 @@ try:
     time_str = tw_now.strftime("%Y-%m-%d %H:%M:%S")
 
     news_pool        = get_news_pool(50)
-    pool_text        = format_pool_for_prompt(news_pool)
     stock_summary, structured_stocks = get_stock_data()
     stock_cards_html = build_stock_html(structured_stocks)
 
     # ── 建立佔位符對照表，AI 只見編號，Python 事後填入真實 URL ─────────────
     link_map = {f"LINK_{i}": item["link"] for i, item in enumerate(news_pool, 1)}
 
-    # ── Prompt：給 AI 編號與標題，要求輸出 LINK_N 佔位符 ────────────────────
-    prompt = f"""
+    # ── Prompt：有新聞用完整版，無新聞用純技術面版 ──────────────────────────
+    if news_pool:
+        pool_text = format_pool_for_prompt(news_pool)
+        prompt = f"""
     任務：你是台灣頂級財經主編，文風專業犀利、觀點精準，請依照以下格式輸出，語言：繁體中文。
     現在你擁有了即時新聞與專業總經觀點（標題含 [總經觀點] 前綴者來自財經M平方）。
     請在撰寫分析時，嘗試結合總經趨勢（如美債、匯率或全球經濟）與台股盤勢，提升分析深度。
@@ -186,6 +204,26 @@ try:
     4. 每則新聞標題保持原文，不得改寫。
     5. 每則新聞僅能使用一個 LINK_N，嚴禁重複或輸出任何真實網址。
     6. 輸出前自我檢查：每個 [ 必須有對應的 ]，每個 ( 必須有對應的 )，不得出現任何未閉合括號。
+    """
+    else:
+        print("[WARN] 新聞池為空，切換純技術面分析模式")
+        prompt = f"""
+    任務：你是台灣頂級財經主編，文風專業犀利，語言：繁體中文。
+    目前外部新聞連線異常，請僅針對以下即時行情數據進行專業技術面與趨勢點評。
+    請隱藏所有新聞列表區段，不得捏造任何新聞標題或連結。
+
+    【今日股市數據摘要】
+    {stock_summary}
+
+    ── 輸出格式（僅輸出以下兩個區段）──
+
+    ## 📈 今日盤勢重點分析
+    （針對數據進行 200 字內的技術面評論，包含趨勢研判與操作觀點）
+
+    ## 📌 三大市場焦點
+    **焦點 1**：技術面觀察（30 字內）
+    **焦點 2**：技術面觀察（30 字內）
+    **焦點 3**：技術面觀察（30 字內）
     """
 
     response = client.chat.completions.create(
