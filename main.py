@@ -376,8 +376,61 @@ try:
             border-top: 1px solid var(--border);
         }}
 
+        /* ── TradingView 區塊 ── */
+        .tv-section {{ margin-top: 0; }}
+
+        .tv-ta-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 8px;
+        }}
+        .tv-ta-card {{
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+        }}
+        .tv-ta-label {{
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }}
+
+        .tv-chart-tabs {{
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }}
+        .tv-tab {{
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--muted);
+            cursor: pointer;
+            font-family: "Noto Sans TC", sans-serif;
+            font-size: 0.82rem;
+            padding: 6px 16px;
+            transition: all 0.15s;
+        }}
+        .tv-tab:hover, .tv-tab.active {{
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #0d1117;
+            font-weight: 700;
+        }}
+        .tv-chart-panel {{
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }}
+        .tradingview-widget-container {{ width: 100%; }}
+
         @media (max-width: 600px) {{
             .stock-grid {{ grid-template-columns: repeat(2, 1fr); }}
+            .tv-ta-grid {{ grid-template-columns: repeat(2, 1fr); }}
         }}
     </style>
 </head>
@@ -407,12 +460,197 @@ try:
         {html_body}
     </div>
 
+    <!-- TradingView 區塊 -->
+    <hr class="divider">
+    <section class="tv-section">
+        <div class="section-label">TradingView 技術分析</div>
+
+        <!-- 技術分析評分 (4 個標的) -->
+        <div class="tv-ta-grid">
+            <div class="tv-ta-card">
+                <div class="tv-ta-label">加權指數</div>
+                <!-- TradingView Widget BEGIN -->
+                <div class="tradingview-widget-container">
+                    <div class="tradingview-widget-container__widget"></div>
+                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js" async>
+                    {{
+                        "interval": "1D",
+                        "width": "100%",
+                        "isTransparent": true,
+                        "height": 200,
+                        "symbol": "TWSE:TAIEX",
+                        "showIntervalTabs": true,
+                        "displayMode": "single",
+                        "locale": "zh_TW",
+                        "colorTheme": "dark"
+                    }}
+                    </script>
+                </div>
+                <!-- TradingView Widget END -->
+            </div>
+            <div class="tv-ta-card">
+                <div class="tv-ta-label">台積電 2330</div>
+                <div class="tradingview-widget-container">
+                    <div class="tradingview-widget-container__widget"></div>
+                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js" async>
+                    {{
+                        "interval": "1D",
+                        "width": "100%",
+                        "isTransparent": true,
+                        "height": 200,
+                        "symbol": "TWSE:2330",
+                        "showIntervalTabs": true,
+                        "displayMode": "single",
+                        "locale": "zh_TW",
+                        "colorTheme": "dark"
+                    }}
+                    </script>
+                </div>
+            </div>
+            <div class="tv-ta-card">
+                <div class="tv-ta-label">聯發科 2454</div>
+                <div class="tradingview-widget-container">
+                    <div class="tradingview-widget-container__widget"></div>
+                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js" async>
+                    {{
+                        "interval": "1D",
+                        "width": "100%",
+                        "isTransparent": true,
+                        "height": 200,
+                        "symbol": "TWSE:2454",
+                        "showIntervalTabs": true,
+                        "displayMode": "single",
+                        "locale": "zh_TW",
+                        "colorTheme": "dark"
+                    }}
+                    </script>
+                </div>
+            </div>
+            <div class="tv-ta-card">
+                <div class="tv-ta-label">台達電 2308</div>
+                <div class="tradingview-widget-container">
+                    <div class="tradingview-widget-container__widget"></div>
+                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js" async>
+                    {{
+                        "interval": "1D",
+                        "width": "100%",
+                        "isTransparent": true,
+                        "height": 200,
+                        "symbol": "TWSE:2308",
+                        "showIntervalTabs": true,
+                        "displayMode": "single",
+                        "locale": "zh_TW",
+                        "colorTheme": "dark"
+                    }}
+                    </script>
+                </div>
+            </div>
+        </div>
+
+        <!-- K 線圖 (逐一顯示) -->
+        <div class="section-label" style="margin-top: 28px;">K 線互動圖表</div>
+        <div class="tv-chart-tabs">
+            <button class="tv-tab active" onclick="showChart('taiex')">加權指數</button>
+            <button class="tv-tab" onclick="showChart('tsmc')">台積電</button>
+            <button class="tv-tab" onclick="showChart('mtk')">聯發科</button>
+            <button class="tv-tab" onclick="showChart('delta')">台達電</button>
+        </div>
+
+        <div id="chart-taiex" class="tv-chart-panel">
+            <div class="tradingview-widget-container">
+                <div class="tradingview-widget-container__widget"></div>
+                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+                {{
+                    "autosize": true,
+                    "height": 450,
+                    "symbol": "TWSE:TAIEX",
+                    "interval": "D",
+                    "timezone": "Asia/Taipei",
+                    "theme": "dark",
+                    "style": "1",
+                    "locale": "zh_TW",
+                    "allow_symbol_change": false,
+                    "studies": ["RSI@tv-basicstudies", "MASimple@tv-basicstudies"],
+                    "support_host": "https://www.tradingview.com"
+                }}
+                </script>
+            </div>
+        </div>
+        <div id="chart-tsmc" class="tv-chart-panel" style="display:none">
+            <div class="tradingview-widget-container">
+                <div class="tradingview-widget-container__widget"></div>
+                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+                {{
+                    "autosize": true,
+                    "height": 450,
+                    "symbol": "TWSE:2330",
+                    "interval": "D",
+                    "timezone": "Asia/Taipei",
+                    "theme": "dark",
+                    "style": "1",
+                    "locale": "zh_TW",
+                    "allow_symbol_change": false,
+                    "studies": ["RSI@tv-basicstudies", "MASimple@tv-basicstudies"],
+                    "support_host": "https://www.tradingview.com"
+                }}
+                </script>
+            </div>
+        </div>
+        <div id="chart-mtk" class="tv-chart-panel" style="display:none">
+            <div class="tradingview-widget-container">
+                <div class="tradingview-widget-container__widget"></div>
+                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+                {{
+                    "autosize": true,
+                    "height": 450,
+                    "symbol": "TWSE:2454",
+                    "interval": "D",
+                    "timezone": "Asia/Taipei",
+                    "theme": "dark",
+                    "style": "1",
+                    "locale": "zh_TW",
+                    "allow_symbol_change": false,
+                    "studies": ["RSI@tv-basicstudies", "MASimple@tv-basicstudies"],
+                    "support_host": "https://www.tradingview.com"
+                }}
+                </script>
+            </div>
+        </div>
+        <div id="chart-delta" class="tv-chart-panel" style="display:none">
+            <div class="tradingview-widget-container">
+                <div class="tradingview-widget-container__widget"></div>
+                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+                {{
+                    "autosize": true,
+                    "height": 450,
+                    "symbol": "TWSE:2308",
+                    "interval": "D",
+                    "timezone": "Asia/Taipei",
+                    "theme": "dark",
+                    "style": "1",
+                    "locale": "zh_TW",
+                    "allow_symbol_change": false,
+                    "studies": ["RSI@tv-basicstudies", "MASimple@tv-basicstudies"],
+                    "support_host": "https://www.tradingview.com"
+                }}
+                </script>
+            </div>
+        </div>
+    </section>
+
     <footer class="site-footer">
-        數據來源：鉅亨網 RSS &bull; Yahoo Finance &bull; OpenAI GPT-4o-mini
+        數據來源：鉅亨網 RSS &bull; Yahoo Finance &bull; OpenAI GPT-4o-mini &bull; TradingView
     </footer>
 </div>
 
 <script>
+    function showChart(id) {{
+        document.querySelectorAll('.tv-chart-panel').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.tv-tab').forEach(el => el.classList.remove('active'));
+        document.getElementById('chart-' + id).style.display = 'block';
+        event.target.classList.add('active');
+    }}
+
     (function () {{
         function tick() {{
             const el = document.getElementById('live-clock');
