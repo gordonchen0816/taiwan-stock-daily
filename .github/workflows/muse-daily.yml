@@ -1,0 +1,42 @@
+name: MUSE 私人日報自動發送
+
+on:
+  # 台灣時間 14:00（UTC 06:00），盤後半小時
+  schedule:
+    - cron: "0 6 * * 1-5"   # 週一至週五，UTC 06:00
+
+  # 手動觸發（測試用）
+  workflow_dispatch:
+    inputs:
+      note:
+        description: "備註（可留空）"
+        required: false
+        default: "手動觸發"
+
+jobs:
+  send-muse-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install yfinance requests
+
+      - name: Generate & Send MUSE Daily Report
+        env:
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: python muse_report.py
+
+      - name: Log result
+        if: always()
+        run: echo "MUSE日報流程完成，檢查上方輸出確認發送狀態"

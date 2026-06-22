@@ -1,0 +1,45 @@
+{
+  "_comment": "每次交易後手動更新此檔，commit push 即生效",
+  "_version": "v2.7",
+  "_updated": "2026-06-22",
+
+  "holdings": {
+    "2330": { "name": "台積電",   "shares": 1075, "cost_twd": 1459.62 },
+    "2383": { "name": "台光電",   "shares": 65,   "cost_twd": 4651.98 },
+    "NVDA": { "name": "NVIDIA",   "shares": 58,   "cost_usd": 167.38  },
+    "MU":   { "name": "美光科技", "shares": 23,   "cost_usd": 840.91  }
+  },
+
+  "cash": {
+    "twd": 374783,
+    "usd": 5672
+  },
+
+  "comparison": {
+    "3481": { "name": "群創", "note": "L17 TSMC+Amkor 封測生態圈對照追蹤" }
+  },
+
+  "muse_params": {
+    "eps_base":        140,
+    "pe_mean":         22.5,
+    "pe_std":          3.5,
+    "b_threshold":     0.15,
+    "c_threshold":     0.75,
+    "d_threshold":     1.20,
+    "e_threshold":     2.0,
+    "stop_loss_2330":  2229,
+    "stop_loss_2383":  4800,
+    "stop_loss_nvda":  160,
+    "stop_loss_mu":    780,
+    "target_short_2330": 2800,
+    "target_long_2330":  3150,
+    "target_2383":       7000,
+    "mandates_violated": ["B<15%"],
+    "l17_note": "TSMC+Amkor 10年封測協議（6/18）→ CoWoS/SoIC先進封裝垂直整合"
+  },
+
+  "email": {
+    "to":   "gordon0816@gmail.com",
+    "from": "gordon0816@gmail.com"
+  }
+}
