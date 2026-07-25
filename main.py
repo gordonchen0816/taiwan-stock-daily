@@ -12,7 +12,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 def get_news_pool(limit=50):
-    """抓取鉅亨網台股 RSS + 財經M平方總經觀點，回傳合併清單"""
+    """抓取鉅亨網、Yahoo 股市與財經 M 平方 RSS，回傳合併清單"""
     headers = {"User-Agent": "Mozilla/5.0"}
     pool = []
 
@@ -68,6 +68,29 @@ def get_news_pool(limit=50):
         print(f"[INFO] 財經M平方抓到 {mm_count} 則觀點")
     except Exception as e:
         print(f"[ERROR] 財經M平方 RSS 抓取失敗：{e}")
+
+    # ── 水源三：Yahoo 股市新聞（取最新 30 則）──────────────────────────────
+    yahoo_count = 0
+    try:
+        resp = requests.get("https://tw.stock.yahoo.com/rss?", headers=headers, timeout=15)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.content, features="xml")
+        items = soup.find_all("item", limit=30)
+        if not items:
+            print("[WARN] Yahoo 股市 RSS 回應成功但 <item> 數量為 0")
+        for item in items:
+            title = item.title.text.strip() if item.title else ""
+            if not title:
+                print("[WARN] Yahoo 股市某 item 缺少 title，已略過")
+                continue
+            if any(kw in title for kw in BLOCKED):
+                continue
+            link = item.link.text.strip().split('?')[0] if item.link else "#"
+            pool.append({"title": title, "link": link, "source": "Yahoo 股市"})
+            yahoo_count += 1
+        print(f"[INFO] Yahoo 股市抓到 {yahoo_count} 則新聞")
+    except Exception as e:
+        print(f"[ERROR] Yahoo 股市 RSS 抓取失敗：{e}")
 
     if not pool:
         raise RuntimeError(
