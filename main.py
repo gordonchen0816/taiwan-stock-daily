@@ -20,7 +20,11 @@ def get_news_pool(limit=50):
 
     # ── 水源一：鉅亨網台股即時新聞 ──────────────────────────────────────────
     try:
-        resp = requests.get("https://news.cnyes.com/rss/tw_stock", headers=headers, timeout=15)
+        resp = requests.get(
+            "https://news.cnyes.com/rss/v1/news/category/tw_stock",
+            headers=headers,
+            timeout=15,
+        )
         resp.raise_for_status()
         soup  = BeautifulSoup(resp.content, features="xml")
         items = soup.find_all("item", limit=limit)
@@ -66,8 +70,9 @@ def get_news_pool(limit=50):
         print(f"[ERROR] 財經M平方 RSS 抓取失敗：{e}")
 
     if not pool:
-        print("[ERROR] 所有新聞水源均失敗，pool 為空，AI 將無新聞可用")
-        return [{"title": "【RSS 異常】所有新聞水源均無法取得，請檢查 Actions Log", "link": "#", "source": "系統警告"}]
+        raise RuntimeError(
+            f"DATA_NULL: {datetime.now().isoformat()} 所有新聞水源均無法取得，中止產報"
+        )
 
     print(f"[INFO] 新聞池總計 {len(pool)} 則，傳入 AI")
     return pool
