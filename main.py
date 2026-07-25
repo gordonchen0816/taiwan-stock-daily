@@ -93,28 +93,40 @@ def get_stock_data():
     }
     summary_parts = []
     structured = []
+    failed_tickers = []
 
     for name, code in tickers.items():
         try:
             d = yf.download(code, period="5d", interval="1d", progress=False)
-            if not d.empty:
-                curr = round(float(d["Close"].iloc[-1].item()), 2)
-                prev = round(float(d["Close"].iloc[-2].item()), 2)
-                diff = round(curr - prev, 2)
-                pct  = round((diff / prev) * 100, 2)
-                sign = "▲" if diff >= 0 else "▼"
-                color = "up" if diff >= 0 else "down"
-                summary_parts.append(f"{name}: {curr} ({sign}{abs(diff)}, {pct}%)")
-                structured.append({
-                    "name": name,
-                    "price": curr,
-                    "diff": diff,
-                    "pct": pct,
-                    "sign": sign,
-                    "color": color,
-                })
-        except Exception:
-            summary_parts.append(f"{name}: 獲取失敗")
+            if d is None or d.empty or d.isnull().all().all() or len(d.index) < 2:
+                raise RuntimeError("回傳空值或不足兩筆交易日資料")
+
+            curr = round(float(d["Close"].iloc[-1].item()), 2)
+            prev = round(float(d["Close"].iloc[-2].item()), 2)
+            if prev == 0:
+                raise RuntimeError("前一交易日收盤價為 0")
+
+            diff = round(curr - prev, 2)
+            pct  = round((diff / prev) * 100, 2)
+            sign = "▲" if diff >= 0 else "▼"
+            color = "up" if diff >= 0 else "down"
+            summary_parts.append(f"{name}: {curr} ({sign}{abs(diff)}, {pct}%)")
+            structured.append({
+                "name": name,
+                "price": curr,
+                "diff": diff,
+                "pct": pct,
+                "sign": sign,
+                "color": color,
+            })
+        except Exception as e:
+            failed_tickers.append(f"{name} ({code}): {e}")
+
+    if failed_tickers or len(structured) != len(tickers):
+        detail = "; ".join(failed_tickers) or "資料筆數不完整"
+        raise RuntimeError(
+            f"DATA_NULL: {datetime.now().isoformat()} 股價資料不完整，中止產報。{detail}"
+        )
 
     return " &nbsp; ".join(summary_parts), structured
 
@@ -675,3 +687,4 @@ try:
 
 except Exception:
     print(f"失敗：\n{traceback.format_exc()}")
+    raise
